@@ -1,0 +1,82 @@
+# ─────────────────────────────────────────────────────────────────────
+#  Rubico settings (no secrets in here - those go in .env)
+#
+#  `python setup.py` creates config.yaml for you from this file and fills
+#  in the basics. Anything you leave out uses the default shown here.
+# ─────────────────────────────────────────────────────────────────────
+
+user:
+  name: ""                 # what Rubico calls you, e.g. "Alex" (blank = no name)
+
+timezone: "Europe/London"  # any IANA name: America/New_York, Asia/Kolkata, ...
+locale: "en-GB"            # number/date format on the dashboard
+currency: "GBP"            # GBP, USD, EUR, ...
+
+location:                  # for the weather forecast
+  name: "London"
+  latitude: 51.5072
+  longitude: -0.1276
+
+briefing:
+  time: "08:00"            # when the morning brief arrives (24h, your timezone)
+  max_words: 200
+  catch_up_minutes: 90     # if Rubico was off at brief time, still send it within this window
+
+assistant:
+  name: "Rubico"
+  model: "claude-sonnet-5" # any Claude model your API key can use
+  # How Rubico sounds. Write it however you like - it's passed straight to Claude.
+  voice: >
+    Friendly, warm and direct, like a helpful friend texting. Plain sentences,
+    a light touch of emoji is fine. Never drop useful information just to be brief.
+  # Example of a very different voice:
+  # voice: >
+  #   Address the user as 'sir'. All lowercase, casual and direct, the way a person
+  #   texts. A few emojis here and there. Every word spelled correctly.
+  #
+  # How email replies you ask for should be written:
+  email_reply_style: >
+    Match the tone of the email being replied to. Short, clear and polite.
+    Sign off with the user's first name if it is known.
+  # Example: all lowercase, short and casual, abbreviations like 'yh', 'ngl'.
+  review_window_minutes: 10  # emails wait this long for you to reply CANCEL
+
+# Data sources: switch each on/off. Run `python setup.py` to connect them.
+sources:
+  gmail:
+    enabled: false
+    accounts: []           # nicknames, e.g. [personal, work] - setup.py fills this
+    max_emails: 10         # per account, from the last 24h
+  calendar:
+    enabled: false
+    accounts: []           # e.g. [personal]
+  weather:
+    enabled: true          # free, no key needed
+  monzo:
+    enabled: false         # UK bank - needs a Monzo developer client
+    window_days: 85        # Monzo refuses history queries of 90+ days
+  spotify:
+    enabled: false
+
+features:
+  web_search: true         # text "search <question>" for a live web answer
+  study_reminders:
+    enabled: false         # text "studied <topic>" -> spaced-repetition review pings
+    schedule_days: [1, 3, 7, 14, 30]
+    reminder_time: "08:00"
+    add_to_calendar: true  # also put reviews on your Google Calendar (if connected)
+
+dashboard:
+  enabled: true
+  host: "127.0.0.1"        # 127.0.0.1 = only this computer can open it (safest).
+                           # Use 0.0.0.0 for your home network, or your Tailscale IP -
+                           # and set DASHBOARD_PASSWORD in .env if you do.
+  port: 8600
+  public_url: ""           # link shown in the brief; blank = http://host:port/
+
+metrics:
+  collect_every_minutes: 60  # dashboard refresh. Keep <= 180 if you use Spotify
+                             # (it only remembers your last 50 plays)
+
+storage:
+  data_dir: "data"         # database + login tokens live here (gitignored)

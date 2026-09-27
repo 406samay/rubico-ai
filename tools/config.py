@@ -1,0 +1,227 @@
+"""
+One place that knows your personal settings.
+
+Two files feed it:
+  - config.yaml  -> non-secret settings (your name, city, timezone, which
+                    data sources are switched on). Starts as a copy of
+                    config.example.yaml - setup.py writes it for you.
+  - .env         -> secrets (API keys, bot token). Never committed to git.
+
+Every other tool asks this module instead of hardcoding anything, so the
+same code works for anyone who clones the repo.
+
+Environment overrides (mostly for demo mode and tests):
+  RUBICO_CONFIG    path to a different config file
+  RUBICO_DATA_DIR  where the database and login tokens live
+  RUBICO_DEMO=1    run on fake data, never touch real accounts
+"""
+
+import copy
+import os
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+import yaml
+from dotenv import load_dotenv
+
+ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(ROOT / ".env")
+
+# Every setting has a sensible default here, so a missing or half-filled
+# config.yaml still works. config.example.yaml documents each one.
+DEFAULTS = {
+    "user": {"name": ""},
+    "timezone": "Europe/London",
+    "locale": "en-GB",
+    "currency": "GBP",
+    "location": {"name": "London", "latitude": 51.5072, "longitude": -0.1276},
+    "briefing": {
+        "time": "08:00",
+        "max_words": 200,
+        # If Rubico was off at briefing time, still send it when it starts
+        # up - but only within this many minutes. A "morning" brief that
+        # turns up at lunchtime is worse than none.
+        "catch_up_minutes": 90,
+    },
+    "assistant": {
+        "name": "Rubico",
+        "model": "claude-sonnet-5",
+        "voice": (
+            "Friendly, warm and direct, like a helpful friend texting. Plain "
+            "sentences, a light touch of emoji is fine. Never drop useful "
+            "information just to be brief."
+        ),
+        "email_reply_style": (
+            "Match the tone of the email being replied to. Short, clear and "
+            "polite. Sign off with the user's first name if it is known."
+        ),
+        "review_window_minutes": 10,
+    },
+    "sources": {
+        "gmail": {"enabled": False, "accounts": [], "max_emails": 10},
+        "calendar": {"enabled": False, "accounts": []},
+        "weather": {"enabled": True},
+        "monzo": {"enabled": False, "window_days": 85},
+        "spotify": {"enabled": False},
+    },
+    "features": {
+        "web_search": True,
+        "study_reminders": {
+            "enabled": False,
+            "schedule_days": [1, 3, 7, 14, 30],
+            "reminder_time": "08:00",
+            "add_to_calendar": True,
+        },
+    },
+    "dashboard": {
+        "enabled": True,
+        # 127.0.0.1 = only reachable from this computer. Safest default:
+        # the dashboard can show your bank balance.
+        "host": "127.0.0.1",
+        "port": 8600,
+        "public_url": "",
+    },
+    "metrics": {"collect_every_minutes": 60},
+    "storage": {"data_dir": "data"},
+}
+
+# What demo mode switches on. Fake account names only - nothing real.
+DEMO_OVERRIDES = {
+    "user": {"name": "Alex"},
+    "location": {"name": "London", "latitude": 51.5072, "longitude": -0.1276},
+    "sources": {
+        "gmail": {"enabled": True, "accounts": ["personal", "work"]},
+        "calendar": {"enabled": True, "accounts": ["personal"]},
+        "weather": {"enabled": True},
+        "monzo": {"enabled": True},
+        "spotify": {"enabled": True},
+    },
+    "features": {"study_reminders": {"enabled": True, "add_to_calendar": False}},
+    "storage": {"data_dir": "data/demo"},
+}
+
+_cache = None
+
+
+def _deep_merge(base, override):
+    out = copy.deepcopy(base)
+    for key, value in (override or {}).items():
+        if isinstance(value, dict) and isinstance(out.get(key), dict):
+            out[key] = _deep_merge(out[key], value)
+        else:
+            out[key] = value
+    return out
+
+
+def config_path():
+    return Path(os.environ.get("RUBICO_CONFIG", ROOT / "config.yaml"))
+
+
+def is_demo():
+    return os.environ.get("RUBICO_DEMO", "").strip().lower() in ("1", "true", "yes")
+
+
+def load_user_file():
+    """Just what's in config.yaml, without defaults (setup.py edits this)."""
+    path = config_path()
+    if not path.exists():
+        return {}
+    with open(path, encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def get():
+    global _cache
+    if _cache is None:
+        cfg = _deep_merge(DEFAULTS, load_user_file())
+        if is_demo():
+            cfg = _deep_merge(cfg, DEMO_OVERRIDES)
+        _cache = cfg
+    return _cache
+
+
+def reload():
+    global _cache
+    _cache = None
+    return get()
+
+
+def source(name):
+    return get()["sources"].get(name, {})
+
+
+def source_enabled(name):
+    return bool(source(name).get("enabled"))
+
+
+def feature(name):
+    return get()["features"].get(name, {})
+
+
+def tz():
+    try:
+        return ZoneInfo(get()["timezone"])
+    except Exception:
+        return ZoneInfo("UTC")
+
+
+def data_dir():
+    override = os.environ.get("RUBICO_DATA_DIR")
+    path = Path(override) if override else ROOT / get()["storage"]["data_dir"]
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def token_path(filename):
+    """Login tokens live in data/tokens/ - gitignored, never leaves this machine."""
+    folder = data_dir() / "tokens"
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder / filename
+
+
+def env(name, default=None):
+    value = os.environ.get(name, "").strip()
+    return value or default
+
+
+def user_name():
+    return (get()["user"].get("name") or "").strip()
+
+
+def assistant_name():
+    return get()["assistant"].get("name") or "Rubico"
+
+
+def model():
+    return get()["assistant"].get("model") or DEFAULTS["assistant"]["model"]
+
+
+def dashboard_url():
+    dash = get()["dashboard"]
+    if dash.get("public_url"):
+        return dash["public_url"]
+    host = dash.get("host", "127.0.0.1")
+    if host in ("0.0.0.0", "::"):
+        host = "localhost"
+    return f"http://{host}:{dash.get('port', 8600)}/"
+
+
+def valid_time(value):
+    """'08:00' -> (8, 0), or None if it isn't a real time. Also copes with
+    YAML turning an unquoted 7:30 into the number 450 (minutes)."""
+    if isinstance(value, int) and 0 <= value < 24 * 60:
+        return divmod(value, 60)
+    try:
+        hh, mm = (int(x) for x in str(value).strip().split(":"))
+    except ValueError:
+        return None
+    return (hh, mm) if 0 <= hh < 24 and 0 <= mm < 60 else None
+
+
+def parse_time(value, default="08:00"):
+    return valid_time(value) or valid_time(default) or (8, 0)
+
+
+def python_cmd():
+    """How to run Python on this machine, for messages that tell you what to type."""
+    return "python" if os.name == "nt" else "python3"

@@ -1,0 +1,1963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<title>Rubico</title>
+<style>
+/* ============================================================
+   TOKENS
+   Light palette on bare :root; dark redefines only what changes,
+   guarded so an explicit light choice always wins.
+   ============================================================ */
+:root {
+  --bg: #F2F2F7;
+  --bg-tint: 210 40% 96%;
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-solid: #FFFFFF;
+  --surface-raised: rgba(255, 255, 255, 0.86);
+  --hairline: rgba(60, 60, 67, 0.16);
+  --hairline-strong: rgba(60, 60, 67, 0.29);
+
+  --label: #000000;
+  --label-2: rgba(60, 60, 67, 0.62);
+  --label-3: rgba(60, 60, 67, 0.36);
+  --label-4: rgba(60, 60, 67, 0.20);
+
+  --food: #FF9500;
+  --food-soft: rgba(255, 149, 0, 0.16);
+  --money: #5856D6;
+  --money-soft: rgba(88, 86, 214, 0.16);
+  --sky: #32ADE6;
+  --sky-soft: rgba(50, 173, 230, 0.16);
+  --sound: #1DB954;
+  --good: #34C759;
+  --warn: #FF3B30;
+
+  --fill-quaternary: rgba(116, 116, 128, 0.08);
+  --fill-tertiary: rgba(116, 116, 128, 0.12);
+
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+  --shadow-chrome: 0 1px 0 rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.08);
+
+  --r-card: 22px;
+  --r-inner: 14px;
+  --r-chip: 12px;
+
+  --gutter: clamp(16px, 4vw, 28px);
+}
+
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    --bg: #000000;
+    --surface: rgba(28, 28, 30, 0.68);
+    --surface-solid: #1C1C1E;
+    --surface-raised: rgba(44, 44, 46, 0.78);
+    --hairline: rgba(84, 84, 88, 0.48);
+    --hairline-strong: rgba(84, 84, 88, 0.72);
+
+    --label: #FFFFFF;
+    --label-2: rgba(235, 235, 245, 0.62);
+    --label-3: rgba(235, 235, 245, 0.34);
+    --label-4: rgba(235, 235, 245, 0.18);
+
+    --food: #FF9F0A;
+    --food-soft: rgba(255, 159, 10, 0.20);
+    --money: #7D7AFF;
+    --money-soft: rgba(125, 122, 255, 0.20);
+    --sky: #64D2FF;
+    --sky-soft: rgba(100, 210, 255, 0.20);
+    --sound: #1ED760;
+    --good: #30D158;
+    --warn: #FF453A;
+
+    --fill-quaternary: rgba(118, 118, 128, 0.18);
+    --fill-tertiary: rgba(118, 118, 128, 0.24);
+
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.5), 0 12px 32px rgba(0,0,0,0.44);
+    --shadow-chrome: 0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #000000;
+  --surface: rgba(28, 28, 30, 0.68);
+  --surface-solid: #1C1C1E;
+  --surface-raised: rgba(44, 44, 46, 0.78);
+  --hairline: rgba(84, 84, 88, 0.48);
+  --hairline-strong: rgba(84, 84, 88, 0.72);
+
+  --label: #FFFFFF;
+  --label-2: rgba(235, 235, 245, 0.62);
+  --label-3: rgba(235, 235, 245, 0.34);
+  --label-4: rgba(235, 235, 245, 0.18);
+
+  --food: #FF9F0A;
+  --food-soft: rgba(255, 159, 10, 0.20);
+  --money: #7D7AFF;
+  --money-soft: rgba(125, 122, 255, 0.20);
+  --sky: #64D2FF;
+  --sky-soft: rgba(100, 210, 255, 0.20);
+  --sound: #1ED760;
+  --good: #30D158;
+  --warn: #FF453A;
+
+  --fill-quaternary: rgba(118, 118, 128, 0.18);
+  --fill-tertiary: rgba(118, 118, 128, 0.24);
+
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.5), 0 12px 32px rgba(0,0,0,0.44);
+  --shadow-chrome: 0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.6);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--label);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Numbers must not jitter while scrubbing. */
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+h1, h2, h3 { margin: 0; font-weight: 600; }
+
+/* Tracking is size-specific: tighten as type grows, never one global value. */
+.display {
+  font-size: clamp(2.1rem, 6.5vw, 3.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.028em;
+  font-weight: 700;
+}
+.title-1 { font-size: 1.3rem; line-height: 1.2; letter-spacing: -0.015em; }
+.title-2 { font-size: 1.0625rem; line-height: 1.25; letter-spacing: -0.008em; font-weight: 600; }
+.body    { font-size: 0.9375rem; line-height: 1.45; letter-spacing: 0; }
+.caption {
+  font-size: 0.75rem;
+  line-height: 1.3;
+  letter-spacing: 0.02em;   /* small text wants a touch more air */
+  color: var(--label-2);
+  font-weight: 500;
+}
+.overline {
+  font-size: 0.6875rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--label-3);
+}
+
+/* ============================================================
+   CHROME — translucent, content scrolls under
+   ============================================================ */
+.chrome {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--surface);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid var(--hairline);
+  padding: 10px var(--gutter);
+  padding-top: calc(10px + env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.chrome__title { font-size: 1rem; font-weight: 650; letter-spacing: -0.01em; }
+.chrome__meta { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.dot-live {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--good);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 22%, transparent);
+  flex: none;
+}
+.dot-live[data-stale="true"] { background: var(--label-3); box-shadow: none; }
+
+.icon-btn {
+  appearance: none;
+  border: 1px solid var(--hairline);
+  background: var(--fill-quaternary);
+  color: var(--label);
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 90ms ease-out, background 160ms ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.icon-btn:hover { background: var(--fill-tertiary); }
+/* Feedback on press-down, not on release. */
+.icon-btn:active { transform: scale(0.92); }
+.icon-btn svg { width: 17px; height: 17px; display: block; }
+.icon-btn:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 var(--gutter) 64px;
+}
+
+.hero { padding: 28px 0 18px; }
+.hero__eyebrow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.hero__headline { margin-top: 6px; max-width: 52ch; color: var(--label-2); text-wrap: pretty; }
+.hero__headline strong { color: var(--label); font-weight: 600; }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+  /* Cards size to their content. Stretching them to a common height leaves
+     large dead areas in whichever card currently has the least data. */
+  align-items: start;
+}
+.grid--wide { grid-template-columns: 1fr; }
+
+/* ============================================================
+   SURFACES
+   ============================================================ */
+.card {
+  position: relative;
+  background: var(--surface);
+  backdrop-filter: blur(30px) saturate(170%);
+  -webkit-backdrop-filter: blur(30px) saturate(170%);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+  overflow: hidden;
+}
+/* A bright top edge reads as light catching the material. */
+.card::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding-top: 1px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.5), transparent 42%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.card__head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.card__dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.card__aside { margin-left: auto; }
+
+.tile {
+  background: var(--surface);
+  backdrop-filter: blur(30px) saturate(170%);
+  -webkit-backdrop-filter: blur(30px) saturate(170%);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 108px;
+  justify-content: center;
+}
+.tile__value {
+  font-size: clamp(1.7rem, 4.4vw, 2.15rem);
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  line-height: 1.05;
+}
+.tile__sub { color: var(--label-2); }
+.tile__row { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+
+/* ============================================================
+   DAY STRIP — direct manipulation
+   ============================================================ */
+.strip {
+  position: relative;
+  margin-top: 26px;
+  border-radius: var(--r-card);
+  overflow: hidden;
+  touch-action: pan-y;          /* we own horizontal, browser keeps vertical */
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+.strip[data-dragging="true"] { cursor: grabbing; }
+.strip__track {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  will-change: transform;
+}
+.strip:focus-visible { outline: 2px solid var(--sky); outline-offset: 3px; }
+
+.chip {
+  flex: none;
+  width: 74px;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  padding: 9px 8px 10px;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.chip[data-selected="true"] {
+  border-color: color-mix(in srgb, var(--sky) 62%, transparent);
+  background: var(--surface-raised);
+}
+.chip__dow { font-size: 0.6875rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--label-3); font-weight: 650; }
+.chip__day { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.01em; line-height: 1; }
+.chip__marks { display: flex; gap: 3px; height: 5px; margin-top: 1px; }
+.chip__mark { width: 5px; height: 5px; border-radius: 50%; background: var(--label-4); }
+.chip__mark[data-on="true"][data-kind="brief"] { background: var(--food); }
+.chip__mark[data-on="true"][data-kind="money"] { background: var(--money); }
+.chip__mark[data-on="true"][data-kind="sky"]   { background: var(--sky); }
+.chip__mark[data-on="true"][data-kind="sound"] { background: var(--sound); }
+.chip[data-today="true"] .chip__day { color: var(--sky); }
+
+/* Edges fade so the strip reads as continuing past the frame. */
+.strip::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, var(--bg), transparent 5%, transparent 95%, var(--bg));
+  opacity: 0.9;
+}
+
+/* ============================================================
+   SEGMENTED CONTROL
+   ============================================================ */
+.seg {
+  position: relative;
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 11px;
+  background: var(--fill-quaternary);
+  border: 1px solid var(--hairline);
+  gap: 2px;
+}
+.seg__pill {
+  position: absolute;
+  top: 3px; left: 0;
+  height: calc(100% - 6px);
+  border-radius: 8px;
+  background: var(--surface-solid);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.14);
+  will-change: transform, width;
+  pointer-events: none;
+}
+.seg__btn {
+  position: relative;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--label-2);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  padding: 5px 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 180ms ease, transform 90ms ease-out;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.seg__btn[aria-selected="true"] { color: var(--label); }
+.seg__btn:active { transform: scale(0.96); }
+.seg__btn:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+
+/* ============================================================
+   CHARTS
+   ============================================================ */
+.chart {
+  position: relative;
+  width: 100%;
+  height: 148px;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Clipped deliberately: a bad scale should produce an empty chart, never
+   paint over the surrounding card. PAD.t leaves room for the marker dot. */
+.chart svg { display: block; width: 100%; height: 100%; overflow: hidden; }
+.chart:focus-visible { outline: 2px solid var(--sky); outline-offset: 4px; border-radius: 8px; }
+
+.chart__readout {
+  position: absolute;
+  top: -2px; left: 0;
+  pointer-events: none;
+  background: var(--surface-raised);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 5px 9px;
+  box-shadow: var(--shadow-card);
+  white-space: nowrap;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.chart__readout[data-visible="true"] { opacity: 1; }
+.chart__readout .k { color: var(--label-2); font-size: 0.6875rem; letter-spacing: 0.02em; }
+.chart__readout .v { font-size: 0.8125rem; font-weight: 650; letter-spacing: -0.005em; }
+
+.axis { display: flex; justify-content: space-between; margin-top: 7px; }
+
+/* ============================================================
+   RING
+   ============================================================ */
+.ring-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.ring { position: relative; width: 132px; height: 132px; flex: none; }
+.ring svg { transform: rotate(-90deg); display: block; }
+.ring__center {
+  position: absolute; inset: 0;
+  display: grid; place-content: center; text-align: center;
+  gap: 1px;
+}
+.ring__value { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+
+.macros { display: grid; gap: 10px; flex: 1; min-width: 170px; }
+.macro__top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.macro__bar { height: 6px; border-radius: 3px; background: var(--fill-tertiary); overflow: hidden; }
+.macro__fill { height: 100%; border-radius: 3px; will-change: transform; transform-origin: left center; }
+
+/* ============================================================
+   LISTS
+   ============================================================ */
+/* minmax(0,1fr) stops the auto track sizing itself to the row's content and
+   overflowing the card, which clipped the value at the right-hand edge. */
+.rows {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1px;
+  background: var(--hairline);
+  border-radius: var(--r-inner);
+  overflow: hidden;
+}
+.row {
+  display: flex; align-items: center; gap: 10px;
+  min-width: 0;
+  padding: 10px 13px;
+  background: var(--surface-solid);
+}
+.row__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* flex:none so a narrow card squeezes the title, never the value beside it. */
+.row__val, .row__time { flex: none; white-space: nowrap; }
+.row__val { font-weight: 620; letter-spacing: -0.005em; }
+.row__val[data-in="true"] { color: var(--good); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px; }
+.legend__item {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: var(--fill-quaternary);
+  border: 1px solid var(--hairline);
+}
+.legend__swatch { width: 8px; height: 8px; border-radius: 2.5px; }
+
+/* ============================================================
+   EMPTY / STATUS
+   ============================================================ */
+.empty {
+  display: grid; gap: 6px;
+  padding: 22px 18px;
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--r-inner);
+  text-align: center;
+  color: var(--label-2);
+}
+.empty__icon { font-size: 1.4rem; }
+
+.banner {
+  margin-top: 14px;
+  padding: 13px 16px;
+  border-radius: var(--r-inner);
+  border: 1px solid var(--hairline);
+  background: var(--fill-quaternary);
+  display: flex; gap: 10px; align-items: center;
+}
+
+/* Cards materialise rather than plainly fading. */
+.enter { opacity: 0; will-change: transform, opacity, filter; }
+
+/* ============================================================
+   ACCESSIBILITY PREFERENCES
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .icon-btn, .seg__btn { transition: none; }
+  .icon-btn:active, .seg__btn:active { transform: none; }
+  .enter { opacity: 1 !important; filter: none !important; transform: none !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .chrome, .card, .tile, .chip, .chart__readout {
+    background: var(--surface-solid);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .card::before { display: none; }
+}
+@media (prefers-contrast: more) {
+  .card, .tile, .chip { border-color: var(--hairline-strong); background: var(--surface-solid); backdrop-filter: none; }
+  .label-2, .caption { color: var(--label); }
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+</style>
+</head>
+<body>
+
+<header class="chrome">
+  <span class="chrome__title" id="brandTitle">Rubico</span>
+  <div class="chrome__meta">
+    <span class="dot-live" id="liveDot" title=""></span>
+    <span class="caption num" id="freshness">—</span>
+    <button class="icon-btn" id="refreshBtn" title="Refresh data" aria-label="Refresh data">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>
+      </svg>
+    </button>
+    <button class="icon-btn" id="themeBtn" title="Switch appearance" aria-label="Switch appearance">
+      <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <div class="hero__eyebrow">
+      <h1 class="display" id="heroDate">—</h1>
+      <span class="caption" id="heroRelative"></span>
+    </div>
+    <p class="body hero__headline" id="heroHeadline">Loading your day…</p>
+  </section>
+
+  <!-- Day strip: flick to pick a day; everything below follows it. -->
+  <div class="strip" id="strip" tabindex="0" role="slider"
+       aria-label="Select a day" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-valuetext="">
+    <div class="strip__track" id="stripTrack"></div>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-top:30px;flex-wrap:wrap;">
+    <h2 class="title-1">Trends</h2>
+    <div class="seg" id="rangeSeg" role="tablist" aria-label="Time range">
+      <div class="seg__pill" id="segPill"></div>
+      <button class="seg__btn" role="tab" data-days="7"  aria-selected="false">7 days</button>
+      <button class="seg__btn" role="tab" data-days="30" aria-selected="true">30 days</button>
+      <button class="seg__btn" role="tab" data-days="90" aria-selected="false">90 days</button>
+    </div>
+  </div>
+
+  <div class="grid" id="cards"></div>
+
+  <div class="grid grid--wide" id="wideCards"></div>
+
+  <p class="caption" style="margin-top:26px;text-align:center;" id="footNote"></p>
+</main>
+
+<script>
+"use strict";
+
+/* ============================================================
+   MOTION ENGINE
+   Springs, because anything a person can touch must be
+   interruptible and able to inherit velocity mid-flight.
+   ============================================================ */
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+const springLoop = {
+  active: new Set(),
+  raf: null,
+  last: 0,
+  add(s) {
+    this.active.add(s);
+    if (this.raf === null) {
+      this.last = performance.now();
+      this.raf = requestAnimationFrame(this.tick);
+    }
+  },
+  tick: (now) => {
+    const L = springLoop;
+    // Clamp dt so a backgrounded tab doesn't explode the integrator.
+    const dt = Math.min((now - L.last) / 1000, 1 / 30);
+    L.last = now;
+    for (const s of Array.from(L.active)) {
+      if (s.tick(dt)) L.active.delete(s);
+    }
+    L.raf = L.active.size ? requestAnimationFrame(L.tick) : null;
+  }
+};
+
+class Spring {
+  /** damping: 1 = critically damped (no overshoot). response: seconds to reach target. */
+  constructor(value, opts = {}) {
+    this.value = value;
+    this.target = value;
+    this.velocity = 0;
+    this.damping = opts.damping ?? 1.0;
+    this.response = opts.response ?? 0.4;
+    this.epsilon = opts.epsilon ?? 0.01;
+    this.onUpdate = opts.onUpdate || null;
+    this.settled = true;
+  }
+  /** Re-target. Velocity carries through by default — no brick wall on reversal. */
+  to(target, velocity) {
+    this.target = target;
+    if (velocity !== undefined) this.velocity = velocity;
+    if (reduceMotion.matches) { this.set(target); return; }
+    this.settled = false;
+    springLoop.add(this);
+  }
+  set(v) {
+    this.value = v; this.target = v; this.velocity = 0; this.settled = true;
+    springLoop.active.delete(this);
+    if (this.onUpdate) this.onUpdate(this.value);
+  }
+  tick(dt) {
+    const w0 = (2 * Math.PI) / this.response;
+    const z = this.damping;
+    const steps = Math.max(1, Math.ceil(dt * 240));
+    const h = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      const a = -w0 * w0 * (this.value - this.target) - 2 * z * w0 * this.velocity;
+      this.velocity += a * h;
+      this.value += this.velocity * h;
+    }
+    if (Math.abs(this.value - this.target) < this.epsilon &&
+        Math.abs(this.velocity) < this.epsilon * 6) {
+      this.value = this.target;
+      this.velocity = 0;
+      this.settled = true;
+    }
+    if (this.onUpdate) this.onUpdate(this.value);
+    return this.settled;
+  }
+}
+
+/** Where momentum would carry something — exponential decay, same as scroll. */
+function project(velocity, decelerationRate = 0.998) {
+  return (velocity / 1000) * decelerationRate / (1 - decelerationRate);
+}
+
+/** Progressive resistance past a boundary; real things slow before they stop. */
+function rubberband(overshoot, dimension, constant = 0.55) {
+  return (overshoot * dimension * constant) / (dimension + constant * Math.abs(overshoot));
+}
+
+/** Tracks recent pointer samples so release velocity is real, not a single delta. */
+class VelocityTracker {
+  constructor(windowMs = 100) { this.samples = []; this.windowMs = windowMs; }
+  add(x, t) {
+    this.samples.push({ x, t });
+    const cutoff = t - this.windowMs * 2;
+    while (this.samples.length > 2 && this.samples[0].t < cutoff) this.samples.shift();
+  }
+  velocity() {
+    if (this.samples.length < 2) return 0;
+    const last = this.samples[this.samples.length - 1];
+    let first = this.samples[0];
+    for (let i = this.samples.length - 1; i >= 0; i--) {
+      if (last.t - this.samples[i].t > this.windowMs) break;
+      first = this.samples[i];
+    }
+    const dt = (last.t - first.t) / 1000;
+    if (dt <= 0) return 0;
+    return (last.x - first.x) / dt;
+  }
+  reset() { this.samples.length = 0; }
+}
+
+/* ============================================================
+   FORMATTING
+   ============================================================ */
+// Currency and locale come from config.yaml via /api/config.
+let MONEY = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
+const money = (n) => MONEY.format(n ?? 0);
+const money0 = (n) => MONEY.format(n ?? 0).replace(/\.00$/, "");
+// Brief text contains email subjects etc. - never inject it as raw HTML.
+const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const int = (n) => (n === null || n === undefined || Number.isNaN(n)) ? "—" : Math.round(n).toLocaleString("en-GB");
+const temp = (n) => (n === null || n === undefined) ? "—" : `${Math.round(n)}°`;
+
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function parseDate(s) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function longDate(s) { const d = parseDate(s); return `${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`; }
+function relativeDay(s) {
+  const diff = Math.round((parseDate(s) - parseDate(todayStr())) / 86400000);
+  if (diff === 0) return "Today";
+  if (diff === -1) return "Yesterday";
+  if (diff === 1) return "Tomorrow";
+  return diff < 0 ? `${-diff} days ago` : `in ${diff} days`;
+}
+
+const WEATHER_GLYPH = (code) => {
+  if (code === null || code === undefined) return "•";
+  if (code === 0) return "☀️";
+  if (code <= 2) return "🌤️";
+  if (code === 3) return "☁️";
+  if (code <= 48) return "🌫️";
+  if (code <= 57) return "🌦️";
+  if (code <= 67) return "🌧️";
+  if (code <= 77) return "🌨️";
+  if (code <= 82) return "🌧️";
+  if (code <= 86) return "🌨️";
+  return "⛈️";
+};
+
+const CATEGORY_LABEL = {
+  eating_out: "Eating out", groceries: "Groceries", transport: "Transport",
+  shopping: "Shopping", entertainment: "Entertainment", general: "General",
+  bills: "Bills", cash: "Cash", holidays: "Holidays", personal_care: "Personal care",
+  family: "Family", gifts: "Gifts", charity: "Charity", savings: "Savings",
+  transfers: "Transfers", expenses: "Expenses", income: "Income", finances: "Finances",
+};
+const catLabel = (c) => CATEGORY_LABEL[c] || (c || "Other").replace(/_/g, " ");
+
+const CATEGORY_HUE = {
+  eating_out: 28, groceries: 140, transport: 205, shopping: 288,
+  entertainment: 330, general: 250, bills: 12, cash: 48,
+  personal_care: 175, family: 95, transfers: 220,
+};
+const catColor = (c, i = 0) => `hsl(${CATEGORY_HUE[c] ?? (i * 47) % 360} 72% 58%)`;
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {
+  days: {},          // date -> record
+  dates: [],         // sorted ascending
+  meta: {},
+  selected: null,    // date string
+  rangeDays: 30,
+  loaded: false,
+  cfg: { sources: {} },  // from /api/config
+  briefings: [],         // newest first
+  reminders: [],
+};
+
+const on = (source) => !!(state.cfg.sources || {})[source];
+
+async function loadJSON(path, fallback) {
+  try {
+    const res = await fetch(path, { cache: "no-store" });
+    return res.ok ? await res.json() : fallback;
+  } catch (_) { return fallback; }
+}
+
+const briefFor = (date) => state.briefings.find((b) => b.date === date) || null;
+
+async function loadMetrics() {
+  const res = await fetch("api/metrics", { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+/* Build a continuous date axis so gaps read as gaps, not as compressed time. */
+function rangeDates(days) {
+  const out = [];
+  const end = parseDate(todayStr());
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(end);
+    d.setDate(d.getDate() - i);
+    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+  }
+  return out;
+}
+
+const rec = (date) => state.days[date] || {};
+const spendOf = (date) => rec(date).spend || null;
+const weatherOf = (date) => rec(date).weather || null;
+const listeningOf = (date) => rec(date).listening || null;
+
+function seriesFor(dates, pick) {
+  return dates.map((d) => ({ date: d, value: pick(d) }));
+}
+
+function niceMax(v) {
+  if (!isFinite(v) || v <= 0) return 10;
+  const mag = Math.pow(10, Math.floor(Math.log10(v)));
+  const n = v / mag;
+  const step = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10;
+  return step * mag;
+}
+
+/* ============================================================
+   DAY STRIP
+   1:1 tracking, momentum projection to a snap point, rubber-band
+   at the ends, velocity handed to the spring on release.
+   ============================================================ */
+const CHIP_W = 74, CHIP_GAP = 8, PITCH = CHIP_W + CHIP_GAP;
+
+const strip = {
+  el: document.getElementById("strip"),
+  track: document.getElementById("stripTrack"),
+  dates: [],
+  index: 0,
+  x: null,
+  dragging: false,
+  pointerId: null,
+  grabX: 0,
+  startX: 0,
+  tracker: new VelocityTracker(),
+  moved: false,
+
+  viewport() { return this.el.clientWidth; },
+  /** Offset that centres a given index. */
+  offsetFor(i) { return this.viewport() / 2 - (i * PITCH + CHIP_W / 2); },
+  minOffset() { return this.offsetFor(this.dates.length - 1); },
+  maxOffset() { return this.offsetFor(0); },
+
+  build(dates, selected) {
+    this.dates = dates;
+    this.index = Math.max(0, dates.indexOf(selected));
+    this.track.innerHTML = "";
+    const today = todayStr();
+
+    dates.forEach((date, i) => {
+      const d = parseDate(date);
+      const b = briefFor(date), s = spendOf(date), w = weatherOf(date), l = listeningOf(date);
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.dataset.index = String(i);
+      chip.dataset.today = String(date === today);
+      chip.innerHTML = `
+        <span class="chip__dow">${DOW[d.getDay()]}</span>
+        <span class="chip__day num">${d.getDate()}</span>
+        <span class="chip__marks">
+          <span class="chip__mark" data-kind="brief" data-on="${!!b}"></span>
+          <span class="chip__mark" data-kind="money" data-on="${!!(s && s.count)}"></span>
+          <span class="chip__mark" data-kind="sound" data-on="${!!(l && l.tracks)}"></span>
+          <span class="chip__mark" data-kind="sky"   data-on="${!!w}"></span>
+        </span>`;
+      this.track.appendChild(chip);
+    });
+
+    this.el.setAttribute("aria-valuemax", String(dates.length - 1));
+    if (this.x === null) {
+      this.x = new Spring(this.offsetFor(this.index), {
+        damping: 0.82, response: 0.35, epsilon: 0.4,
+        onUpdate: (v) => { this.track.style.transform = `translate3d(${v}px,0,0)`; }
+      });
+      this.x.set(this.offsetFor(this.index));
+      this.bind();
+    } else {
+      this.x.set(this.offsetFor(this.index));
+    }
+    this.paint();
+  },
+
+  paint() {
+    const chips = this.track.children;
+    for (let i = 0; i < chips.length; i++) {
+      chips[i].dataset.selected = String(i === this.index);
+    }
+    const date = this.dates[this.index];
+    this.el.setAttribute("aria-valuenow", String(this.index));
+    this.el.setAttribute("aria-valuetext", `${longDate(date)}, ${relativeDay(date)}`);
+  },
+
+  select(i, velocity) {
+    const clamped = Math.max(0, Math.min(this.dates.length - 1, i));
+    const changed = clamped !== this.index;
+    this.index = clamped;
+    this.paint();
+    this.x.to(this.offsetFor(clamped), velocity);
+    if (changed || state.selected !== this.dates[clamped]) {
+      state.selected = this.dates[clamped];
+      renderSelectedDay();
+    }
+  },
+
+  bind() {
+    const el = this.el;
+
+    el.addEventListener("pointerdown", (e) => {
+      if (e.button !== undefined && e.button !== 0) return;
+      el.setPointerCapture(e.pointerId);
+      this.pointerId = e.pointerId;
+      this.dragging = true;
+      this.moved = false;
+      el.dataset.dragging = "true";
+      // Grab wherever the finger landed — never jump the content under it.
+      this.grabX = e.clientX - this.x.value;
+      this.startX = e.clientX;
+      this.tracker.reset();
+      this.tracker.add(e.clientX, e.timeStamp);
+      // Interrupt any in-flight motion at its *presentation* value.
+      this.x.set(this.x.value);
+    });
+
+    el.addEventListener("pointermove", (e) => {
+      if (!this.dragging || e.pointerId !== this.pointerId) return;
+      this.tracker.add(e.clientX, e.timeStamp);
+      if (Math.abs(e.clientX - this.startX) > 8) this.moved = true;
+
+      let next = e.clientX - this.grabX;
+      const min = this.minOffset(), max = this.maxOffset();
+      const w = this.viewport();
+      if (next > max) next = max + rubberband(next - max, w);
+      else if (next < min) next = min - rubberband(min - next, w);
+      this.x.set(next);
+    });
+
+    const end = (e) => {
+      if (!this.dragging || e.pointerId !== this.pointerId) return;
+      this.dragging = false;
+      el.dataset.dragging = "false";
+      try { el.releasePointerCapture(e.pointerId); } catch (_) {}
+
+      const v = this.tracker.velocity();
+
+      if (!this.moved) {
+        // A tap, not a drag: select the chip under the finger.
+        // Derived from coordinates rather than e.target, because pointer
+        // capture retargets this event to the strip itself - the chip is
+        // never the event target once capture is active.
+        const box = el.getBoundingClientRect();
+        const local = e.clientX - box.left - this.x.value;
+        const i = Math.floor(local / PITCH);
+        if (i >= 0 && i < this.dates.length) { this.select(i, 0); return; }
+      }
+
+      // Land where the flick is *going*, then snap to the nearest day there.
+      const projected = this.x.value + project(v);
+      const centre = this.viewport() / 2;
+      const idx = Math.round((centre - CHIP_W / 2 - projected) / PITCH);
+      this.select(idx, v);
+    };
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") { e.preventDefault(); this.select(this.index - 1, 0); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); this.select(this.index + 1, 0); }
+      else if (e.key === "Home") { e.preventDefault(); this.select(0, 0); }
+      else if (e.key === "End") { e.preventDefault(); this.select(this.dates.length - 1, 0); }
+    });
+
+    let wheelTimer = null;
+    el.addEventListener("wheel", (e) => {
+      const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (!dx) return;
+      e.preventDefault();
+      const min = this.minOffset(), max = this.maxOffset();
+      this.x.set(Math.max(min, Math.min(max, this.x.value - dx)));
+      clearTimeout(wheelTimer);
+      wheelTimer = setTimeout(() => {
+        const centre = this.viewport() / 2;
+        this.select(Math.round((centre - CHIP_W / 2 - this.x.value) / PITCH), 0);
+      }, 110);
+    }, { passive: false });
+
+    window.addEventListener("resize", () => {
+      if (this.x) this.x.set(this.offsetFor(this.index));
+    });
+  }
+};
+
+/* ============================================================
+   CHART
+   Renders in real pixels (crisp strokes), re-renders on resize,
+   scrub tracks the pointer 1:1 and reports continuously.
+   ============================================================ */
+function makeChart(container, config) {
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  container.appendChild(svg);
+
+  const readout = document.createElement("div");
+  readout.className = "chart__readout";
+  container.appendChild(readout);
+
+  const uid = "g" + Math.random().toString(36).slice(2, 8);
+  let series = config.series || [];
+  let hover = null;
+  const indicatorX = new Spring(0, { damping: 1.0, response: 0.22, epsilon: 0.3 });
+
+  const PAD = { t: 10, r: 2, b: 4, l: 2 };
+
+  function layout() {
+    const w = container.clientWidth || 300;
+    const h = container.clientHeight || 140;
+    return { w, h, iw: Math.max(1, w - PAD.l - PAD.r), ih: Math.max(1, h - PAD.t - PAD.b) };
+  }
+
+  function scaleY(v, max, ih) { return PAD.t + ih - (Math.max(0, v) / max) * ih; }
+  function slotX(i, n, iw) { return PAD.l + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw); }
+
+  function render() {
+    const { w, h, iw, ih } = layout();
+    svg.setAttribute("width", w);
+    svg.setAttribute("height", h);
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.innerHTML = "";
+
+    // Band series carry {high, low} objects, so pull real numbers out before
+    // scaling - feeding objects to Math.max yields NaN, which silently
+    // collapses the scale and paints the chart outside its own box.
+    const values = [];
+    series.forEach((p) => {
+      if (p.value === null || p.value === undefined) return;
+      if (typeof p.value === "object") values.push(p.value.high, p.value.low);
+      else values.push(p.value);
+    });
+    const numeric = values.filter((v) => typeof v === "number" && isFinite(v));
+    const goal = config.goal ? config.goal() : null;
+    const rawMax = Math.max(numeric.length ? Math.max(...numeric) : 0, goal || 0);
+    const max = niceMax(rawMax * 1.12) || 10;
+    const n = series.length;
+
+    const defs = document.createElementNS(svgNS, "defs");
+    defs.innerHTML = `
+      <linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="${config.color}" stop-opacity="0.30"/>
+        <stop offset="100%" stop-color="${config.color}" stop-opacity="0.02"/>
+      </linearGradient>`;
+    svg.appendChild(defs);
+
+    // Baseline
+    const base = document.createElementNS(svgNS, "line");
+    base.setAttribute("x1", PAD.l); base.setAttribute("x2", PAD.l + iw);
+    base.setAttribute("y1", PAD.t + ih + 0.5); base.setAttribute("y2", PAD.t + ih + 0.5);
+    base.setAttribute("stroke", "var(--hairline)"); base.setAttribute("stroke-width", "1");
+    svg.appendChild(base);
+
+    if (config.type === "bar") {
+      const slotW = iw / Math.max(1, n);
+      const barW = Math.max(2, Math.min(14, slotW * 0.62));
+      series.forEach((p, i) => {
+        if (!p.value) return;
+        const x = PAD.l + slotW * (i + 0.5) - barW / 2;
+        const y = scaleY(p.value, max, ih);
+        const r = document.createElementNS(svgNS, "rect");
+        r.setAttribute("x", x); r.setAttribute("y", y);
+        r.setAttribute("width", barW);
+        r.setAttribute("height", Math.max(1.5, PAD.t + ih - y));
+        r.setAttribute("rx", Math.min(3, barW / 2));
+        r.setAttribute("fill", config.color);
+        r.setAttribute("opacity", p.date === state.selected ? "1" : "0.55");
+        svg.appendChild(r);
+      });
+    } else if (config.type === "band") {
+      // High/low temperature band + high line.
+      let top = "", bottom = "";
+      let started = false;
+      series.forEach((p, i) => {
+        if (!p.value) return;
+        const x = slotX(i, n, iw);
+        const yHi = scaleY(p.value.high, max, ih);
+        const yLo = scaleY(p.value.low, max, ih);
+        top += `${started ? "L" : "M"}${x.toFixed(1)},${yHi.toFixed(1)}`;
+        bottom = `L${x.toFixed(1)},${yLo.toFixed(1)}` + bottom;
+        started = true;
+      });
+      if (started) {
+        const band = document.createElementNS(svgNS, "path");
+        band.setAttribute("d", top + bottom + "Z");
+        band.setAttribute("fill", config.color);
+        band.setAttribute("opacity", "0.20");
+        svg.appendChild(band);
+        const line = document.createElementNS(svgNS, "path");
+        line.setAttribute("d", top);
+        line.setAttribute("fill", "none");
+        line.setAttribute("stroke", config.color);
+        line.setAttribute("stroke-width", "2");
+        line.setAttribute("stroke-linecap", "round");
+        line.setAttribute("stroke-linejoin", "round");
+        svg.appendChild(line);
+      }
+    } else {
+      // Line + area, with gaps where data is missing.
+      let d = "", area = "", open = false, firstX = null, lastX = null;
+      series.forEach((p, i) => {
+        const x = slotX(i, n, iw);
+        if (p.value === null || p.value === undefined) { open = false; return; }
+        const y = scaleY(p.value, max, ih);
+        if (!open) { d += `M${x.toFixed(1)},${y.toFixed(1)}`; open = true; }
+        else d += `L${x.toFixed(1)},${y.toFixed(1)}`;
+        if (firstX === null) firstX = x;
+        lastX = x;
+        area += (area ? "L" : "M") + `${x.toFixed(1)},${y.toFixed(1)}`;
+      });
+      if (area && firstX !== null) {
+        const fill = document.createElementNS(svgNS, "path");
+        fill.setAttribute("d", `${area}L${lastX.toFixed(1)},${(PAD.t + ih).toFixed(1)}L${firstX.toFixed(1)},${(PAD.t + ih).toFixed(1)}Z`);
+        fill.setAttribute("fill", `url(#${uid})`);
+        svg.appendChild(fill);
+      }
+      if (d) {
+        const line = document.createElementNS(svgNS, "path");
+        line.setAttribute("d", d);
+        line.setAttribute("fill", "none");
+        line.setAttribute("stroke", config.color);
+        line.setAttribute("stroke-width", "2.25");
+        line.setAttribute("stroke-linecap", "round");
+        line.setAttribute("stroke-linejoin", "round");
+        svg.appendChild(line);
+      }
+      // A lone data point has no line to sit on, so it must draw itself -
+      // otherwise a single logged day renders as an empty chart.
+      const plotted = series.filter((p) => p.value !== null && p.value !== undefined);
+      series.forEach((p, i) => {
+        if (p.value === null || p.value === undefined) return;
+        const isSelected = p.date === state.selected;
+        if (!isSelected && plotted.length > 1) return;
+        const c = document.createElementNS(svgNS, "circle");
+        c.setAttribute("cx", slotX(i, n, iw));
+        c.setAttribute("cy", scaleY(p.value, max, ih));
+        c.setAttribute("r", isSelected ? "4" : "3.5");
+        c.setAttribute("fill", config.color);
+        c.setAttribute("stroke", "var(--surface-solid)");
+        c.setAttribute("stroke-width", "2");
+        svg.appendChild(c);
+      });
+    }
+
+    if (goal) {
+      const y = scaleY(goal, max, ih);
+      const g = document.createElementNS(svgNS, "line");
+      g.setAttribute("x1", PAD.l); g.setAttribute("x2", PAD.l + iw);
+      g.setAttribute("y1", y); g.setAttribute("y2", y);
+      g.setAttribute("stroke", config.color);
+      g.setAttribute("stroke-width", "1.5");
+      g.setAttribute("stroke-dasharray", "3 4");
+      g.setAttribute("opacity", "0.55");
+      svg.appendChild(g);
+    }
+
+    // Scrub indicator
+    const rule = document.createElementNS(svgNS, "line");
+    rule.setAttribute("y1", PAD.t - 4); rule.setAttribute("y2", PAD.t + ih);
+    rule.setAttribute("stroke", "var(--label-3)");
+    rule.setAttribute("stroke-width", "1.5");
+    rule.setAttribute("opacity", "0");
+    rule.setAttribute("id", uid + "rule");
+    svg.appendChild(rule);
+    indicatorX.onUpdate = (v) => {
+      rule.setAttribute("x1", v); rule.setAttribute("x2", v);
+      readout.style.transform = `translate3d(${Math.max(0, Math.min(v - 40, layout().w - 96))}px,0,0)`;
+    };
+    rule.setAttribute("opacity", hover === null ? "0" : "0.65");
+  }
+
+  function indexFromX(clientX) {
+    const box = container.getBoundingClientRect();
+    const { iw } = layout();
+    const rel = clientX - box.left - PAD.l;
+    const n = series.length;
+    if (n <= 1) return 0;
+    if (config.type === "bar") {
+      const slotW = iw / n;
+      return Math.max(0, Math.min(n - 1, Math.floor(rel / slotW)));
+    }
+    return Math.max(0, Math.min(n - 1, Math.round((rel / iw) * (n - 1))));
+  }
+
+  function showAt(i) {
+    hover = i;
+    const p = series[i];
+    const { iw } = layout();
+    const n = series.length;
+    const x = config.type === "bar"
+      ? PAD.l + (iw / n) * (i + 0.5)
+      : slotX(i, n, iw);
+    indicatorX.to(x);
+    readout.innerHTML = `<div class="k">${longDate(p.date)}</div><div class="v num">${config.label(p.value, p.date)}</div>`;
+    readout.dataset.visible = "true";
+    const rule = svg.querySelector("#" + uid + "rule");
+    if (rule) rule.setAttribute("opacity", "0.65");
+  }
+
+  function hide() {
+    hover = null;
+    readout.dataset.visible = "false";
+    const rule = svg.querySelector("#" + uid + "rule");
+    if (rule) rule.setAttribute("opacity", "0");
+  }
+
+  let pid = null;
+  container.addEventListener("pointerdown", (e) => {
+    container.setPointerCapture(e.pointerId);
+    pid = e.pointerId;
+    showAt(indexFromX(e.clientX));   // respond on press, not release
+  });
+  container.addEventListener("pointermove", (e) => {
+    if (pid === null) {
+      if (e.pointerType === "mouse") showAt(indexFromX(e.clientX));
+      return;
+    }
+    if (e.pointerId !== pid) return;
+    showAt(indexFromX(e.clientX));   // continuous during the gesture
+  });
+  const release = (e) => {
+    if (pid !== null && e.pointerId === pid) {
+      try { container.releasePointerCapture(e.pointerId); } catch (_) {}
+      pid = null;
+      // Commit the scrubbed day to the whole dashboard.
+      if (hover !== null && series[hover]) {
+        const i = strip.dates.indexOf(series[hover].date);
+        if (i >= 0) strip.select(i, 0);
+      }
+    }
+    if (e.pointerType !== "mouse") hide();
+  };
+  container.addEventListener("pointerup", release);
+  container.addEventListener("pointercancel", release);
+  container.addEventListener("pointerleave", () => { if (pid === null) hide(); });
+
+  const ro = new ResizeObserver(() => render());
+  ro.observe(container);
+
+  return {
+    update(next) { series = next; render(); },
+    render,
+  };
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const el = {
+  heroDate: document.getElementById("heroDate"),
+  heroRelative: document.getElementById("heroRelative"),
+  heroHeadline: document.getElementById("heroHeadline"),
+  tiles: document.getElementById("tiles"),
+  cards: document.getElementById("cards"),
+  wideCards: document.getElementById("wideCards"),
+  freshness: document.getElementById("freshness"),
+  liveDot: document.getElementById("liveDot"),
+  footNote: document.getElementById("footNote"),
+};
+
+const charts = {};
+const springsByKey = {};
+
+function animatedNumber(node, value, format) {
+  const key = node.dataset.springKey || (node.dataset.springKey = "s" + Math.random().toString(36).slice(2, 8));
+  let s = springsByKey[key];
+  if (!s) {
+    s = springsByKey[key] = new Spring(value, {
+      damping: 1.0, response: 0.5, epsilon: 0.5,
+      onUpdate: (v) => { node.textContent = format(v); }
+    });
+    s.set(value);
+  } else {
+    s.onUpdate = (v) => { node.textContent = format(v); };
+    s.to(value);
+  }
+}
+
+function renderTiles() {
+  const date = state.selected;
+  const s = spendOf(date), w = weatherOf(date), l = listeningOf(date);
+  const balance = rec(todayStr()).balance;
+  const tiles = [];
+
+  if (on("monzo")) tiles.push(`
+    <div class="tile">
+      <span class="overline">Spent</span>
+      <span class="tile__value num" id="tSpend">—</span>
+      <span class="caption tile__sub">${s && s.count ? `${s.count} transaction${s.count === 1 ? "" : "s"}` : "No transactions"}</span>
+    </div>`);
+  if (on("weather")) tiles.push(`
+    <div class="tile">
+      <span class="overline">Weather</span>
+      <div class="tile__row">
+        <span class="tile__value num" id="tTemp">—</span>
+        <span style="font-size:1.4rem;line-height:1;">${WEATHER_GLYPH(w && w.code)}</span>
+      </div>
+      <span class="caption tile__sub">${w ? `${w.description}, low ${temp(w.low_c)}` : "No reading"}</span>
+    </div>`);
+  if (on("monzo")) tiles.push(`
+    <div class="tile">
+      <span class="overline">Balance</span>
+      <span class="tile__value num" id="tBal">—</span>
+      <span class="caption tile__sub">${balance === undefined ? "Not synced" : "Monzo, live"}</span>
+    </div>`);
+  if (on("spotify")) tiles.push(`
+    <div class="tile">
+      <span class="overline">Listened</span>
+      <div class="tile__row">
+        <span class="tile__value num" id="tListen"${(l && l.tracks) ? "" : ' style="color:var(--label-3)"'}>—</span>
+        <span class="caption">${l && l.tracks ? "min" : ""}</span>
+      </div>
+      <span class="caption tile__sub">${l && l.tracks ? `${l.tracks} tracks · ${esc(l.top_artist || "")}` : "Nothing played"}</span>
+    </div>`);
+  const active = state.reminders.length;
+  tiles.push(`
+    <div class="tile">
+      <span class="overline">Reminders</span>
+      <span class="tile__value num"${active ? "" : ' style="color:var(--label-3)"'}>${active || "—"}</span>
+      <span class="caption tile__sub">${active ? "still to come" : "None waiting"}</span>
+    </div>`);
+
+  el.tiles.innerHTML = tiles.join("");
+  const anim = (id, value, fmt) => { const node = document.getElementById(id); if (node) animatedNumber(node, value, fmt); };
+  anim("tSpend", (s && s.total) || 0, (v) => money0(v));
+  anim("tTemp", (w && w.high_c) || 0, (v) => w ? temp(v) : "—");
+  anim("tBal", balance || 0, (v) => balance === undefined ? "—" : money(v));
+  anim("tListen", (l && l.minutes) || 0, (v) => (l && l.tracks) ? int(v) : "—");
+}
+
+function renderHero() {
+  const date = state.selected;
+  el.heroDate.textContent = longDate(date);
+  el.heroRelative.textContent = relativeDay(date);
+
+  const s = spendOf(date), w = weatherOf(date), l = listeningOf(date);
+  const bits = [];
+  if (briefFor(date)) bits.push("☀️ brief sent");
+  if (s && s.total > 0) bits.push(`<strong>${money0(s.total)}</strong> spent`);
+  else if (s && s.income > 0) bits.push(`<strong>${money0(s.income)}</strong> in, nothing out`);
+  if (l && l.tracks) bits.push(`<strong>${Math.round(l.minutes)} min</strong> of music`);
+  if (w) bits.push(`${w.description} at <strong>${temp(w.high_c)}</strong>`);
+
+  el.heroHeadline.innerHTML = bits.length
+    ? bits.join(" · ")
+    : "Nothing recorded for this day yet.";
+}
+
+function renderSpendCard(dates) {
+  const date = state.selected;
+  const s = spendOf(date);
+  const totals = dates.map((d) => (spendOf(d) || {}).total || 0);
+  const sum = totals.reduce((a, b) => a + b, 0);
+  const activeDays = totals.filter((v) => v > 0).length;
+  const avg = activeDays ? sum / activeDays : 0;
+  const biggest = Math.max(0, ...totals);
+  const biggestDate = dates[totals.indexOf(biggest)];
+
+  const cats = {};
+  dates.forEach((d) => {
+    const rec = spendOf(d);
+    if (!rec || !rec.by_category) return;
+    for (const [c, v] of Object.entries(rec.by_category)) cats[c] = (cats[c] || 0) + v;
+  });
+  const topCats = Object.entries(cats).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  const transfersOut = dates.reduce((a, d) => a + ((spendOf(d) || {}).transfers_out || 0), 0);
+
+  const tx = (s && s.transactions) || [];
+  const txRows = tx.length ? `
+    <div class="rows" style="margin-top:12px">
+      ${tx.slice(0, 7).map((t) => `
+        <div class="row">
+          <span class="body row__name"${t.internal ? ' style="color:var(--label-2)"' : ""}>${esc(t.name)}${t.internal ? ' <span class="caption">· own account</span>' : ""}</span>
+          <span class="body row__val num" data-in="${t.amount > 0 && !t.internal}">${t.amount > 0 ? "+" : "−"}${money(Math.abs(t.amount))}</span>
+        </div>`).join("")}
+      ${tx.length > 7 ? `<div class="row"><span class="caption row__name">+ ${tx.length - 7} more</span></div>` : ""}
+    </div>` : `
+    <div class="empty" style="margin-top:12px">
+      <span class="empty__icon">💤</span>
+      <span class="body">No transactions on ${longDate(date)}.</span>
+    </div>`;
+
+  return `
+    <section class="card enter">
+      <div class="card__head">
+        <span class="card__dot" style="background:var(--money)"></span>
+        <h3 class="title-2">Spending</h3>
+        <span class="caption card__aside num">${money0(sum)} in range</span>
+      </div>
+      ${transfersOut > 0 ? `<div class="caption" style="margin:-8px 0 12px">Excludes ${money0(transfersOut)} moved between your own accounts.</div>` : ""}
+      ${state.meta.spend_blocked ? `
+        <div class="banner" style="margin:0 0 14px">
+          <span style="font-size:1.05rem">🔒</span>
+          <span class="caption" style="color:var(--label)">
+            Monzo has stopped sending new transactions — an unverified app can only read history
+            for a few minutes after you approve it in the Monzo app. Balance still updates live.
+            Re-approve to refresh spending.
+          </span>
+        </div>` : ""}
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div><div class="overline">Avg per day</div><div class="title-1 num">${money0(avg)}</div></div>
+        <div><div class="overline">Biggest day</div><div class="title-1 num">${money0(biggest)}</div><div class="caption num">${biggest ? longDate(biggestDate) : "—"}</div></div>
+        <div><div class="overline">Active days</div><div class="title-1 num">${activeDays}<span class="caption"> / ${dates.length}</span></div></div>
+      </div>
+
+      <div style="margin-top:16px">
+        <div class="chart" id="chartSpend" tabindex="0" role="img" aria-label="Daily spending over the selected range"></div>
+        <div class="axis"><span class="caption num">${longDate(dates[0])}</span><span class="caption num">${longDate(dates[dates.length - 1])}</span></div>
+      </div>
+
+      ${topCats.length ? `
+        <div style="margin-top:16px">
+          <div class="caption" style="margin-bottom:7px">Where it went</div>
+          <div class="legend">
+            ${topCats.map(([c, v], i) => `
+              <span class="legend__item">
+                <span class="legend__swatch" style="background:${catColor(c, i)}"></span>
+                <span class="caption" style="color:var(--label)">${catLabel(c)}</span>
+                <span class="caption num">${money0(v)}</span>
+              </span>`).join("")}
+          </div>
+        </div>` : ""}
+
+      <div class="caption" style="margin-top:16px">On ${longDate(date)}</div>
+      ${txRows}
+    </section>`;
+}
+
+function renderWeatherCard(dates) {
+  const date = state.selected;
+  const w = weatherOf(date);
+  const withData = dates.filter((d) => weatherOf(d));
+  const highs = withData.map((d) => weatherOf(d).high_c);
+  const rain = withData.map((d) => weatherOf(d).precipitation_mm || 0);
+  const wettest = Math.max(0, ...rain);
+  const rainyDays = rain.filter((v) => v >= 1).length;
+
+  return `
+    <section class="card enter">
+      <div class="card__head">
+        <span class="card__dot" style="background:var(--sky)"></span>
+        <h3 class="title-2">Weather</h3>
+        <span class="caption card__aside">${esc(state.cfg.location || "")}</span>
+      </div>
+
+      ${w ? `
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="font-size:2.6rem;line-height:1">${WEATHER_GLYPH(w.code)}</div>
+          <div>
+            <div class="title-1 num">${temp(w.high_c)} <span class="caption num">high · ${temp(w.low_c)} low</span></div>
+            <div class="caption" style="text-transform:capitalize">${w.description}${w.precipitation_mm ? ` · ${w.precipitation_mm}mm rain` : " · dry"}</div>
+          </div>
+        </div>` : `<div class="empty"><span class="body">No reading for this day.</span></div>`}
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px">
+        <div><div class="overline">Warmest</div><div class="title-1 num">${highs.length ? temp(Math.max(...highs)) : "—"}</div></div>
+        <div><div class="overline">Coolest</div><div class="title-1 num">${highs.length ? temp(Math.min(...highs)) : "—"}</div></div>
+        <div><div class="overline">Rainy days</div><div class="title-1 num">${rainyDays}</div></div>
+      </div>
+
+      <div style="margin-top:16px">
+        <div class="caption" style="margin-bottom:2px">Daily high and low</div>
+        <div class="chart" id="chartTemp" tabindex="0" role="img" aria-label="Daily temperature range"></div>
+        <div class="axis"><span class="caption num">${longDate(dates[0])}</span><span class="caption num">${longDate(dates[dates.length - 1])}</span></div>
+      </div>
+    </section>`;
+}
+
+function renderListeningCard(dates) {
+  const date = state.selected;
+  const l = listeningOf(date);
+  const since = state.meta.spotify_since;
+
+  const withData = dates.filter((d) => { const x = listeningOf(d); return x && x.tracks; });
+  const totalMin = withData.reduce((a, d) => a + (listeningOf(d).minutes || 0), 0);
+  const totalTracks = withData.reduce((a, d) => a + (listeningOf(d).tracks || 0), 0);
+
+  // Artist tallies across the range, not just the selected day.
+  const artists = {};
+  withData.forEach((d) => {
+    for (const [name, count] of Object.entries(listeningOf(d).by_artist || {})) {
+      artists[name] = (artists[name] || 0) + count;
+    }
+  });
+  const topArtists = Object.entries(artists).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const top4w = state.meta.top_artists_4w || [];
+
+  // Three different silences, and they must not look alike: not connected,
+  // connected-but-this-day-predates-tracking, and genuinely played nothing.
+  const notConnected = !since;
+  const beforeTracking = since && date < since;
+
+  const dayBlock = (l && l.tracks) ? `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <div><div class="overline">Tracks</div><div class="title-1 num">${l.tracks}</div></div>
+      <div><div class="overline">Minutes</div><div class="title-1 num">${Math.round(l.minutes)}</div></div>
+      <div><div class="overline">Top artist</div><div class="body" style="font-weight:620;margin-top:2px">${esc(l.top_artist || "—")}</div></div>
+    </div>
+    ${l.plays && l.plays.length ? `
+      <div class="caption" style="margin:14px 0 6px">What you played</div>
+      <div class="rows">
+        ${l.plays.slice(-6).reverse().map((p) => `
+          <div class="row">
+            <span class="body row__name">${esc(p.track)}<span class="caption"> · ${esc(p.artist)}</span></span>
+            <span class="caption num row__time">${new Date(p.played_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+          </div>`).join("")}
+        ${l.plays.length > 6 ? `<div class="row"><span class="caption row__name">+ ${l.plays.length - 6} earlier</span></div>` : ""}
+      </div>` : ""}
+  ` : `
+    <div class="empty">
+      <span class="empty__icon">${notConnected ? "🔗" : beforeTracking ? "🕰️" : "🔇"}</span>
+      <span class="body">${
+        notConnected ? "Spotify isn't connected yet."
+        : beforeTracking ? `Spotify wasn't connected yet on ${longDate(date)}.`
+        : `Nothing played on ${longDate(date)}.`}</span>
+      ${notConnected
+        ? `<span class="caption">Run <code>python setup.py --only spotify</code> to connect it. Tracking starts from that moment — Spotify only exposes the last 50 plays, so earlier history can't be recovered.</span>`
+        : beforeTracking
+        ? `<span class="caption">History starts ${longDate(since)} — Spotify only exposes the last 50 plays, so earlier days can't be recovered.</span>`
+        : ""}
+    </div>`;
+
+  return `
+    <section class="card enter">
+      <div class="card__head">
+        <span class="card__dot" style="background:var(--sound)"></span>
+        <h3 class="title-2">Listening</h3>
+        <span class="caption card__aside num">${totalTracks ? `${Math.round(totalMin)} min in range` : ""}</span>
+      </div>
+
+      ${dayBlock}
+
+      <div style="margin-top:16px">
+        <div class="caption" style="margin-bottom:2px">Minutes listened per day</div>
+        <div class="chart" id="chartListen" tabindex="0" role="img" aria-label="Minutes listened per day"></div>
+        <div class="axis"><span class="caption num">${longDate(dates[0])}</span><span class="caption num">${longDate(dates[dates.length - 1])}</span></div>
+      </div>
+
+      ${topArtists.length ? `
+        <div style="margin-top:16px">
+          <div class="caption" style="margin-bottom:7px">Most played in range</div>
+          <div class="legend">
+            ${topArtists.map(([name, count]) => `
+              <span class="legend__item">
+                <span class="legend__swatch" style="background:var(--sound)"></span>
+                <span class="caption" style="color:var(--label)">${esc(name)}</span>
+                <span class="caption num">${count}</span>
+              </span>`).join("")}
+          </div>
+        </div>` : ""}
+
+      ${top4w.length ? `
+        <div style="margin-top:14px">
+          <div class="caption" style="margin-bottom:7px">Your top artists · last 4 weeks (Spotify's own ranking)</div>
+          <div class="legend">
+            ${top4w.slice(0, 6).map((a) => `<span class="legend__item"><span class="caption" style="color:var(--label)">${esc(a.name)}</span></span>`).join("")}
+          </div>
+        </div>` : ""}
+    </section>`;
+}
+
+/* Only claim a pattern when there's enough data to justify it. */
+function computeInsights(dates) {
+  const out = [];
+
+  const spendDays = dates.filter((d) => spendOf(d));
+  const dry = [], wet = [];
+  dates.forEach((d) => {
+    const s = spendOf(d), w = weatherOf(d);
+    if (!w) return;
+    const total = (s && s.total) || 0;
+    ((w.precipitation_mm || 0) >= 1 ? wet : dry).push(total);
+  });
+  if (wet.length >= 5 && dry.length >= 5) {
+    const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+    const mw = mean(wet), md = mean(dry);
+    if (Math.abs(mw - md) > 1) {
+      out.push({
+        icon: mw > md ? "🌧️" : "☀️",
+        text: `You spend about <strong>${money0(Math.abs(mw - md))} more</strong> per day when it ${mw > md ? "rains" : "stays dry"} (${money0(mw)} vs ${money0(md)} across ${wet.length + dry.length} days).`
+      });
+    }
+  }
+
+  const byDow = Array.from({ length: 7 }, () => []);
+  dates.forEach((d) => {
+    const s = spendOf(d);
+    if (!s) return;
+    byDow[parseDate(d).getDay()].push(s.total || 0);
+  });
+  const dowAvg = byDow.map((a, i) => ({ i, n: a.length, avg: a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0 }))
+                      .filter((x) => x.n >= 2);
+  if (dowAvg.length >= 4) {
+    const top = dowAvg.reduce((a, b) => (b.avg > a.avg ? b : a));
+    if (top.avg > 0) {
+      out.push({ icon: "📅", text: `<strong>${DOW[top.i]}</strong> is your priciest day — ${money0(top.avg)} on average.` });
+    }
+  }
+
+  const cats = {};
+  dates.forEach((d) => {
+    const s = spendOf(d);
+    if (!s || !s.by_category) return;
+    for (const [c, v] of Object.entries(s.by_category)) cats[c] = (cats[c] || 0) + v;
+  });
+  const total = Object.values(cats).reduce((a, b) => a + b, 0);
+  if (total > 0) {
+    const [c, v] = Object.entries(cats).sort((a, b) => b[1] - a[1])[0];
+    out.push({ icon: "🧾", text: `<strong>${catLabel(c)}</strong> takes ${Math.round((v / total) * 100)}% of your spending in this range (${money0(v)} of ${money0(total)}).` });
+  }
+
+  const listenDays = dates.filter((d) => { const x = listeningOf(d); return x && x.tracks; });
+  if (listenDays.length >= 3) {
+    const mins = listenDays.map((d) => listeningOf(d).minutes || 0);
+    const avg = mins.reduce((a, b) => a + b, 0) / mins.length;
+    const artists = {};
+    listenDays.forEach((d) => {
+      for (const [name, count] of Object.entries(listeningOf(d).by_artist || {})) {
+        artists[name] = (artists[name] || 0) + count;
+      }
+    });
+    const top = Object.entries(artists).sort((a, b) => b[1] - a[1])[0];
+    out.push({
+      icon: "🎧",
+      text: `You average <strong>${Math.round(avg)} minutes</strong> of music on days you listen${top ? `, mostly <strong>${esc(top[0])}</strong> (${top[1]} plays)` : ""}.`
+    });
+  }
+
+  const balance = rec(todayStr()).balance;
+  if (balance !== undefined && spendDays.length >= 3) {
+    const active = dates.map((d) => (spendOf(d) || {}).total || 0).filter((v) => v > 0);
+    if (active.length) {
+      const burn = active.reduce((a, b) => a + b, 0) / active.length;
+      if (burn > 0) {
+        out.push({ icon: "⏳", text: `At ${money0(burn)} per active day, your ${money(balance)} balance covers about <strong>${Math.floor(balance / burn)} more spending days</strong>.` });
+      }
+    }
+  }
+
+  return out;
+}
+
+function renderInsights(dates) {
+  const items = computeInsights(dates);
+  if (!items.length) {
+    return `
+      <section class="card enter">
+        <div class="card__head"><span class="card__dot" style="background:var(--good)"></span><h3 class="title-2">Patterns</h3></div>
+        <div class="empty"><span class="empty__icon">📈</span><span class="body">Not enough history yet to say anything honest.</span><span class="caption">Patterns appear here as days accumulate.</span></div>
+      </section>`;
+  }
+  return `
+    <section class="card enter">
+      <div class="card__head">
+        <span class="card__dot" style="background:var(--good)"></span>
+        <h3 class="title-2">Patterns</h3>
+        <span class="caption card__aside">Last ${state.rangeDays} days</span>
+      </div>
+      <div style="display:grid;gap:11px">
+        ${items.map((it) => `
+          <div style="display:flex;gap:11px;align-items:flex-start">
+            <span style="font-size:1.05rem;line-height:1.35">${it.icon}</span>
+            <span class="body" style="color:var(--label-2)">${it.text}</span>
+          </div>`).join("")}
+      </div>
+    </section>`;
+}
+
+function renderBriefingCard() {
+  const date = state.selected;
+  const b = briefFor(date);
+  const recent = state.briefings.slice(0, 7);
+  const body = b ? `
+      <div class="body" style="white-space:pre-wrap;color:var(--label-2);line-height:1.55">${esc(b.text)}</div>
+      <div class="caption" style="margin-top:10px">Sent ${esc(new Date(b.created_at).toLocaleTimeString(state.cfg.locale || undefined, { hour: "2-digit", minute: "2-digit" }))}</div>`
+    : `
+      <div class="empty"><span class="empty__icon">☀️</span>
+        <span class="body">No brief was sent on ${longDate(date)}.</span>
+        <span class="caption">Days with an orange dot in the strip above have one.</span></div>`;
+  const list = recent.length ? `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+        ${recent.map((r) => `<button class="seg__btn brief-jump" data-date="${esc(r.date)}" aria-pressed="${r.date === date}"
+             style="border:1px solid var(--hairline-strong);border-radius:999px;padding:4px 11px;${r.date === date ? "background:var(--fill-tertiary)" : ""}">${longDate(r.date)}</button>`).join("")}
+      </div>` : "";
+  return `
+    <section class="card enter">
+      <div class="card__head">
+        <span class="card__dot" style="background:var(--food)"></span>
+        <h3 class="title-2">Morning brief</h3>
+        <span class="caption card__aside num">${state.briefings.length} saved</span>
+      </div>
+      ${body}${list}
+    </section>`;
+}
+
+function renderRemindersCard() {
+  const items = state.reminders;
+  const body = items.length ? `
+      <div style="display:grid;gap:9px">
+        ${items.map((r) => `
+          <div style="display:flex;gap:11px;align-items:baseline">
+            <span class="caption num" style="min-width:2.2em">#${r.id}</span>
+            <span class="body" style="flex:1">${esc(r.text)}</span>
+            <span class="caption">${esc(r.when)}</span>
+          </div>`).join("")}
+      </div>
+      <div class="caption" style="margin-top:12px">Text the bot /cancel &lt;number&gt; to remove one.</div>`
+    : `<div class="empty"><span class="empty__icon">📌</span>
+         <span class="body">No reminders waiting.</span>
+         <span class="caption">Text the bot "remind me tomorrow to …" to add one.</span></div>`;
+  return `
+    <section class="card enter">
+      <div class="card__head">
+        <span class="card__dot" style="background:var(--warn, var(--food))"></span>
+        <h3 class="title-2">Reminders</h3>
+        <span class="caption card__aside num">${items.length} active</span>
+      </div>
+      ${body}
+    </section>`;
+}
+
+function renderSelectedDay() {
+  renderHero();
+  renderTiles();
+  renderCards();
+}
+
+let cardsSignature = "";
+
+function renderCards() {
+  const dates = rangeDates(state.rangeDays);
+
+  // Re-render structure only when it actually changes; otherwise just update
+  // the parts that depend on the selected day, so scrubbing stays cheap.
+  const signature = `${state.rangeDays}|${state.selected}`;
+  if (signature === cardsSignature) return;
+  cardsSignature = signature;
+
+  el.cards.innerHTML = (on("monzo") ? renderSpendCard(dates) : "")
+                     + (on("spotify") ? renderListeningCard(dates) : "")
+                     + (on("weather") ? renderWeatherCard(dates) : "");
+  el.wideCards.innerHTML = renderBriefingCard() + renderRemindersCard() + renderInsights(dates);
+  el.wideCards.querySelectorAll(".brief-jump").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.selected = btn.dataset.date;
+      rebuildStrip();
+      renderSelectedDay();
+    });
+  });
+
+  if (on("monzo")) {
+  charts.spend = makeChart(document.getElementById("chartSpend"), {
+    type: "bar",
+    color: "var(--money)",
+    label: (v) => v ? money(v) : "Nothing spent",
+  });
+  charts.spend.update(seriesFor(dates, (d) => (spendOf(d) || {}).total || 0));
+  }
+
+  if (on("spotify")) {
+
+  charts.listen = makeChart(document.getElementById("chartListen"), {
+    type: "bar",
+    color: "var(--sound)",
+    label: (v) => v ? `${Math.round(v)} min` : "Nothing played",
+  });
+  charts.listen.update(seriesFor(dates, (d) => (listeningOf(d) || {}).minutes || 0));
+  }
+
+  if (on("weather")) {
+
+  charts.temp = makeChart(document.getElementById("chartTemp"), {
+    type: "band",
+    color: "var(--sky)",
+    label: (v) => v ? `${temp(v.high)} / ${temp(v.low)}` : "No reading",
+  });
+  charts.temp.update(seriesFor(dates, (d) => {
+    const w = weatherOf(d);
+    return w ? { high: w.high_c, low: w.low_c } : null;
+  }));
+  }
+
+  materialise();
+}
+
+/* Surfaces arrive as material — blur and scale together — not a flat fade. */
+function materialise() {
+  const nodes = document.querySelectorAll(".enter");
+  nodes.forEach((node, i) => {
+    if (reduceMotion.matches) { node.style.opacity = "1"; node.classList.remove("enter"); return; }
+    const delay = i * 55;
+    const s = new Spring(0, {
+      damping: 1.0, response: 0.5, epsilon: 0.002,
+      onUpdate: (v) => {
+        node.style.opacity = String(Math.min(1, v));
+        node.style.transform = `translate3d(0,${((1 - v) * 14).toFixed(2)}px,0) scale(${(0.985 + v * 0.015).toFixed(4)})`;
+        node.style.filter = v < 0.98 ? `blur(${((1 - v) * 5).toFixed(2)}px)` : "none";
+      }
+    });
+    s.set(0);
+    setTimeout(() => s.to(1), delay);
+    setTimeout(() => { node.classList.remove("enter"); node.style.filter = "none"; }, delay + 900);
+  });
+}
+
+/* ============================================================
+   RANGE CONTROL — spring-driven selection pill
+   ============================================================ */
+const seg = {
+  root: document.getElementById("rangeSeg"),
+  pill: document.getElementById("segPill"),
+  spring: null,
+  init() {
+    const buttons = Array.from(this.root.querySelectorAll(".seg__btn"));
+    this.spring = new Spring(0, {
+      damping: 1.0, response: 0.34, epsilon: 0.3,
+      onUpdate: (v) => { this.pill.style.transform = `translate3d(${v}px,0,0)`; }
+    });
+
+    const place = (btn, animate) => {
+      const w = btn.offsetWidth;
+      this.pill.style.width = `${w}px`;
+      const x = btn.offsetLeft - this.root.clientLeft;
+      if (animate) this.spring.to(x); else this.spring.set(x);
+    };
+
+    buttons.forEach((btn) => {
+      btn.addEventListener("pointerdown", () => {
+        // Commit on press — the range change is cheap and reversible.
+        if (btn.getAttribute("aria-selected") === "true") return;
+        buttons.forEach((b) => b.setAttribute("aria-selected", String(b === btn)));
+        place(btn, true);
+        state.rangeDays = Number(btn.dataset.days);
+        cardsSignature = "";
+        rebuildStrip();
+        renderCards();
+      });
+    });
+
+    const selected = buttons.find((b) => b.getAttribute("aria-selected") === "true") || buttons[0];
+    requestAnimationFrame(() => place(selected, false));
+    window.addEventListener("resize", () => {
+      const cur = buttons.find((b) => b.getAttribute("aria-selected") === "true");
+      if (cur) place(cur, false);
+    });
+  }
+};
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+function rebuildStrip() {
+  const dates = rangeDates(Math.min(state.rangeDays, 90));
+  if (!state.selected || !dates.includes(state.selected)) {
+    state.selected = dates[dates.length - 1];
+  }
+  strip.build(dates, state.selected);
+}
+
+function updateFreshness() {
+  const iso = state.meta.last_updated;
+  if (!iso) { el.freshness.textContent = "—"; return; }
+  const then = new Date(iso);
+  const mins = Math.round((Date.now() - then.getTime()) / 60000);
+  const label = mins < 1 ? "just now"
+    : mins < 60 ? `${mins}m ago`
+    : mins < 1440 ? `${Math.round(mins / 60)}h ago`
+    : `${Math.round(mins / 1440)}d ago`;
+  el.freshness.textContent = label;
+  el.liveDot.dataset.stale = String(mins > 180);
+  el.liveDot.title = `Data collected ${label}`;
+}
+
+async function refresh(initial) {
+  try {
+    const [payload, cfg, briefings, reminders] = await Promise.all([
+      loadMetrics(), loadJSON("api/config", state.cfg), loadJSON("api/briefings", []), loadJSON("api/reminders", []),
+    ]);
+    state.cfg = cfg || state.cfg;
+    state.briefings = briefings || [];
+    state.reminders = reminders || [];
+    try { MONEY = new Intl.NumberFormat(state.cfg.locale || "en-GB", { style: "currency", currency: state.cfg.currency || "GBP" }); } catch (_) {}
+    document.getElementById("brandTitle").textContent = (state.cfg.assistant || "Rubico") + (state.cfg.demo ? " · demo" : "");
+    state.days = payload.days || {};
+    state.meta = payload.meta || {};
+    state.dates = Object.keys(state.days).sort();
+    state.loaded = true;
+
+    rebuildStrip();
+    cardsSignature = "";
+    renderSelectedDay();
+    updateFreshness();
+
+    const first = state.dates[0], last = state.dates[state.dates.length - 1];
+    el.footNote.textContent = state.dates.length
+      ? `${state.dates.length} days stored · ${longDate(first)} to ${longDate(last)}`
+      : "No data collected yet.";
+  } catch (err) {
+    if (initial) {
+      el.heroHeadline.innerHTML = `Couldn't load data — <strong>${err.message}</strong>. Is the dashboard server running?`;
+      el.footNote.textContent = "Expecting api/metrics next to this page.";
+    }
+    el.liveDot.dataset.stale = "true";
+  }
+}
+
+document.getElementById("refreshBtn").addEventListener("pointerdown", async () => {
+  const btn = document.getElementById("refreshBtn");
+  btn.style.opacity = "0.5";
+  try {
+    await fetch("api/collect", { method: "POST" }).catch(() => {});
+    // Collection runs server-side; poll briefly for the newer timestamp.
+    const before = state.meta.last_updated;
+    for (let i = 0; i < 20; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      await refresh(false);
+      if (state.meta.last_updated !== before) break;
+    }
+  } finally {
+    btn.style.opacity = "";
+  }
+});
+
+const themeBtn = document.getElementById("themeBtn");
+themeBtn.addEventListener("pointerdown", () => {
+  const cur = document.documentElement.getAttribute("data-theme");
+  const sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const next = cur ? (cur === "dark" ? "light" : "dark") : (sysDark ? "light" : "dark");
+  document.documentElement.setAttribute("data-theme", next);
+  try { localStorage.setItem("dash-theme", next); } catch (_) {}
+});
+try {
+  const saved = localStorage.getItem("dash-theme");
+  if (saved) document.documentElement.setAttribute("data-theme", saved);
+} catch (_) {}
+
+seg.init();
+refresh(true);
+setInterval(() => { refresh(false); }, 5 * 60 * 1000);
+setInterval(updateFreshness, 30 * 1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+# ── Your secrets and personal data: NEVER commit these ──
+.env
+config.yaml
+data/
+credentials.json
+*.db
+*.sqlite
+*.sqlite3
+
+# Legacy file names from before the database (in case they're lying around)
+token_*.json
+calendar_token_*.json
+monzo_token.json
+spotify_token.json
+chat_offset.txt
+pending_actions.json
+study_reminders.json
+notes.json
+metrics_history.json
+mfp_state.json
+.cache*
+
+# Logs
+*.log
+*_log.txt
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
