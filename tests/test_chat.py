@@ -45,3 +45,16 @@ def test_email_delete_goes_through_review_window(sent, monkeypatch):
     assert pending_actions.get_latest_pending()["type"] == "gmail_bulk_trash"
     chat_listener.handle_message("cancel")
     assert pending_actions.get_latest_pending() is None
+
+
+def test_bare_slash_cancel_from_the_menu(sent):
+    chat_listener.handle_message("remind me tomorrow to pay rent")
+    chat_listener.handle_message("/cancel")
+    assert "Nothing pending" in sent[-1] and "/cancel <number>" in sent[-1]
+
+
+def test_demo_browser_chat_captures_replies():
+    import dashboard_server
+    replies = dashboard_server.demo_chat_send("/reminders")
+    assert replies and replies[0]["from"] == "bot"
+    assert dashboard_server.demo_chat_history[-1] == replies[-1]

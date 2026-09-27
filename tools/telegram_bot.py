@@ -57,3 +57,22 @@ def get_updates(offset=None, timeout=30):
     if offset is not None:
         params["offset"] = offset
     return call("getUpdates", timeout=timeout + 5, **params)
+
+
+# Shows up when you tap the menu button in Telegram, so nobody has to
+# remember the commands.
+COMMANDS = [
+    ("help", "What I can do"),
+    ("reminders", "List your reminders"),
+    ("cancel", "Cancel a reminder, e.g. /cancel 3"),
+    ("brief", "Send the morning brief now"),
+]
+
+
+def set_commands(token=None):
+    call("setMyCommands", token=token, timeout=20,
+         commands=[{"command": c, "description": d} for c, d in COMMANDS])
+
+
+def bot_username(token=None):
+    return call("getMe", token=token, timeout=20)["username"]

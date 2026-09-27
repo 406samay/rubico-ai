@@ -1,118 +1,127 @@
 # Rubico ☀️
 
-**Your own AI morning brief and assistant on Telegram, running on your own computer.**
+**Your own AI assistant that texts you a morning brief, and lets you text it back.**
 
-Every morning Rubico reads your email, calendar, bank, music and the weather.
-Claude turns all of that into a short brief telling you what actually matters today,
-and Rubico sends it to you on Telegram. During the day you can text Rubico to ask
-questions, draft email replies, clear out junk mail, search the web, or save a
-reminder for later. A web dashboard keeps a history of every brief and your data.
+Every morning Rubico reads your email, calendar, bank, music and the weather, and
+Claude turns it into a short brief on **Telegram**: what needs a reply, what's on today,
+and the one thing worth focusing on. Text it all day to ask questions, reply to emails
+or set reminders. Everything also lands on a private **dashboard** you can look back through.
 
-![Rubico dashboard (demo data)](docs/dashboard.png)
+<table>
+<tr>
+<th width="36%">💬 On Telegram: use it every day</th>
+<th>📊 On the dashboard: look back and spot patterns</th>
+</tr>
+<tr>
+<td valign="top"><img src="docs/telegram.png" alt="Rubico's morning brief and reminders in a Telegram chat (demo data)"></td>
+<td valign="top"><img src="docs/dashboard.png" alt="Rubico dashboard with brief history, reminders and charts (demo data)"></td>
+</tr>
+</table>
 
-> **Fully open source and self-hosted.** Rubico has no server and no account.
-> It runs on your machine using your own API keys, and your data never passes
-> through anyone else, including the people who wrote this code. [More on privacy ↓](#-privacy--safety)
+> **Fully open source and self-hosted.** No Rubico server, no account, no tracking.
+> It runs on your computer with your own keys, and nobody else sees your data,
+> including the people who wrote this code. [Privacy details ↓](#-privacy--safety)
 
 ---
 
-## What it does
+## 🚀 Get started (the easy way)
 
-| | |
+1. **Install Python 3.10+** from [python.org/downloads](https://www.python.org/downloads/).
+   On Windows, tick **"Add python.exe to PATH"** in the installer.
+2. **Download Rubico:** click the green **Code** button above, then **Download ZIP**, and unzip it.
+   (Or `git clone https://github.com/406samay/rubico-ai.git`.)
+3. **Double-click the start file** in the folder:
+
+   | Windows | Mac | Linux |
+   |---|---|---|
+   | `start.bat` | `start.command` (first time: right-click → Open) | run `./start.sh` in a terminal |
+
+The first time, it installs what it needs (about a minute) and asks what you'd like to do:
+
+- **1) Try the demo.** It uses fake data and needs no accounts. A Telegram-style chat and the
+  dashboard open in your browser, so you can read a sample brief and text the bot
+  ("remind me tomorrow to…", `/reminders`).
+- **2) Set up Rubico.** The **Quick** setup takes about 3 minutes: Claude + Telegram + your city.
+  That already gets you the morning brief, weather, reminders, web search and the dashboard.
+  Connect Gmail, Calendar, your bank or Spotify whenever you like, later.
+
+After that, the same start file simply starts Rubico. Leave it running.
+
+<details>
+<summary>Prefer the terminal?</summary>
+
+```bash
+git clone https://github.com/406samay/rubico-ai.git
+cd rubico-ai
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m pip install -r requirements.txt
+
+python demo.py        # try it with fake data
+python setup.py       # set it up for real
+python run.py         # start it (leave running)
+```
+On Mac/Linux, use `python3` if `python` isn't found.
+</details>
+
+---
+
+## 💬 Telegram: your daily assistant
+
+Your morning brief arrives at the time you choose. Reply to it like you'd text a friend:
+
+| Text your bot | What happens |
 |---|---|
-| ☀️ **Morning brief** | Arrives at a time you choose. Flags emails that need a reply, lists today's events, warns you about rain, sums up yesterday's spending, and ends with one thing to focus on. |
-| 💬 **Chat** | "What's on today?" · "Reply to Jordan saying I'm in" · "Delete the login alerts from my bank" · `search who won the f1` |
-| 📌 **Notes & reminders** | Text *"remind me tomorrow to submit the form"* and it comes back in tomorrow's brief. `/reminders` lists them and `/cancel 3` removes one. |
-| 📊 **Dashboard** | Every brief you've received, your reminders, and charts of spending, listening and weather. |
-| 🔌 **Pick your sources** | Gmail, Google Calendar, Monzo, Spotify and weather. Turn each on or off, and use as few as you like. |
-| 🛡️ **Safe by default** | Email sends and deletes wait 10 minutes for you to reply `CANCEL`. Deleted mail goes to Gmail's Trash, so you can get it back. |
+| *"any emails I need to reply to?"* | Answered from your data |
+| *"remind me tomorrow to submit the form"* | Saved, and shows up in tomorrow's brief |
+| *"remind me on friday to call Priya"* / *"in 3 days"* / *"on 5 oct"* | Saved for that day |
+| *"note to self: buy milk"* | No date given, so it shows up in your next brief |
+| `/reminders` · `/cancel 3` | List reminders · cancel #3 |
+| *"reply to Jordan saying yes I'm in"* | Drafts it and sends after 10 minutes unless you say `cancel` |
+| *"delete the promo emails"* | Uses Gmail's own Promotions tab, then waits 10 minutes |
+| *"delete the login alerts from my bank"* | Finds matching emails and shows them to you first |
+| `search <question>` | Live web search |
+| `studied <topic>` | Review reminders at 1, 3, 7, 14 and 30 days (optional) |
+| `/brief` · `/help` | Send the brief now · show everything it can do |
+
+Tap the **menu button** next to the message box in Telegram to see the commands.
+Your bot only ever replies to *you*. Messages from anyone else are ignored.
+
+## 📊 Dashboard: your history at a glance
+
+Tap the link at the bottom of every brief, or go to <http://127.0.0.1:8600> while
+Rubico is running:
+
+- **Every morning brief you've received.** Flick the day strip to reread any day.
+- **Your reminders**, and when each one will come back.
+- **Charts** for spending, listening and weather over 7, 30 or 90 days, plus patterns like
+  *"you spend £17 more on rainy days"*.
+- An **Open chat** button that jumps straight to your bot in Telegram.
+
+It's private by default, so only your own computer can open it (see [Privacy](#-privacy--safety)).
 
 ---
 
-## 🧪 Try it in 1 minute (no accounts needed)
+## ✨ What it can connect to
 
-Demo mode uses a fake inbox, calendar, bank account and music history, so you can
-see what the brief and dashboard look like before connecting anything real.
+Pick any mix. Everything is optional except Claude and Telegram.
 
-```bash
-git clone https://github.com/406samay/rubico-ai.git
-cd rubico-ai
-python -m pip install -r requirements.txt
-python demo.py
-```
+| Source | Adds to your brief | Needs |
+|---|---|---|
+| 🌦️ Weather | Today's forecast | Nothing, it's free and on by default |
+| 📧 Gmail | Emails that need a reply; lets you reply and clean up by chat | A Google account ([safe setup ↓](#-connecting-google-gmail--calendar-with-safety-first)) |
+| 📅 Google Calendar | Today's events | A Google account |
+| 🏦 Monzo | Balance and yesterday's spending | A UK Monzo account |
+| 🎧 Spotify | What you've been listening to | A Spotify account |
 
-The terminal prints a sample morning brief and the dashboard opens in your browser.
-Add `--chat` to try texting the bot right in the terminal (`python demo.py --chat`).
-If you already have an Anthropic key in `.env`, Claude writes the demo brief live.
-
----
-
-## What you need
-
-- **Python 3.10 or newer**. Check with `python --version`. You can get it from [python.org](https://www.python.org/downloads/). On Windows, tick *"Add Python to PATH"* when installing.
-- **An Anthropic API key**, so Claude can write your brief. It usually costs a few cents a day.
-- **Telegram** on your phone. It's free.
-- **Optional:** a Google account (Gmail/Calendar), a UK Monzo account, Spotify.
-- A computer that's on in the morning: your laptop, a Raspberry Pi, or a home server.
-
----
-
-## Setup, step by step
-
-### 1. Download Rubico and install its packages
-
-```bash
-git clone https://github.com/406samay/rubico-ai.git
-cd rubico-ai
-
-# Optional but recommended: a private "virtual environment" for Rubico's packages
-python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
-
-python -m pip install -r requirements.txt
-```
-
-> On Mac/Linux, if `python` isn't found, type `python3` instead everywhere.
-
-### 2. Run the setup wizard
-
-```bash
-python setup.py
-```
-
-It walks you through everything, opens the right web pages for you, and checks each
-key works before moving on:
-
-1. **Anthropic key.** Create one at [console.anthropic.com](https://console.anthropic.com/settings/keys).
-2. **Telegram bot.** Message [@BotFather](https://t.me/BotFather), send `/newbot`, and paste the token. Then press *Start* on your new bot so it knows which chat is yours. You'll get a test message.
-3. **About you.** Your name, city (for weather and timezone) and what time the brief should arrive.
-4. **Pick data sources.** Say yes or no to each one.
-5. **Connect the sources you picked.** Your browser opens so you can log in. For Google, see the next section.
-
-Your answers are saved to `.env` (secrets) and `config.yaml` (settings). Both stay on
-your computer and are never uploaded to GitHub.
-
-### 3. Start it
-
-```bash
-python run.py
-```
-
-That one command runs the Telegram chat, sends the brief every morning, and serves the
-dashboard at <http://127.0.0.1:8600>. Leave it running. Text your bot `/help` to see
-what it can do, or send a brief right now with:
-
-```bash
-python tools/orchestrator.py
-```
-
-Check everything is healthy any time with `python setup.py --check`.
+Add or change sources any time: `python setup.py --add`. Want another one, like Strava,
+Todoist or Outlook? [Add it!](#-adding-a-new-data-source)
 
 ---
 
 ## 🔐 Connecting Google (Gmail & Calendar), with safety first
 
-`setup.py` walks you through this, but here's what happens and why it's safe.
+`python setup.py --add` walks you through this step by step, with the right pages opened
+for you. Here's what happens and why it's safe.
 
 **You make your own Google "OAuth client".** It's a free key you create in Google
 Cloud Console, and it lets *your* copy of Rubico ask Google for access to *your*
@@ -171,24 +180,6 @@ nickname, and you choose whether each is used for Gmail, Calendar or both.
 
 ---
 
-## Using it
-
-| Text your bot | What happens |
-|---|---|
-| anything | Answered from your data ("any emails I need to reply to?") |
-| `remind me tomorrow to submit the form` | Saved, and comes back in tomorrow's brief |
-| `remind me on friday to call Priya` / `in 3 days` / `on 5 oct` | Saved for that day |
-| `note to self: buy milk` | No date given, so it shows up in the next brief |
-| `/reminders` · `/cancel 3` | List reminders · cancel #3 |
-| `reply to Jordan saying yes I'm in` | Drafts it and sends after 10 minutes unless you say `cancel` |
-| `delete the promo emails` | Uses Gmail's own Promotions tab, then waits 10 minutes |
-| `delete the login alerts from my bank` | Turns that into a Gmail search and shows you what matched first |
-| `search <question>` | Live web search |
-| `studied <topic>` | Review reminders at 1, 3, 7, 14 and 30 days (if turned on) |
-| `/brief` · `/help` | Send the brief now · show help |
-
----
-
 ## Configuration
 
 All settings live in `config.yaml`, and every option is explained in
@@ -222,8 +213,8 @@ off at brief time, Rubico still sends it when it starts, as long as that's withi
   After=network-online.target
 
   [Service]
-  WorkingDirectory=/home/YOU/rubico
-  ExecStart=/home/YOU/rubico/venv/bin/python run.py
+  WorkingDirectory=/home/YOU/rubico-ai
+  ExecStart=/home/YOU/rubico-ai/.venv/bin/python run.py
   Restart=always
   User=YOU
 
@@ -231,8 +222,9 @@ off at brief time, Rubico still sends it when it starts, as long as that's withi
   WantedBy=multi-user.target
   ```
   Then run `sudo systemctl enable --now rubico`.
-- **Mac / Windows:** keep a terminal open with `python run.py`, or add it to your
-  login items / Task Scheduler ("At log on").
+- **Mac / Windows:** keep the start file's window open. To start it automatically, add
+  `start.command` to *System Settings → General → Login Items* (Mac), or put a shortcut to
+  `start.bat` in your Startup folder (Windows: press Win+R and type `shell:startup`).
 
 ---
 
@@ -267,9 +259,10 @@ new database, then `python setup.py` (Google needs one fresh login).
 ## Project layout
 
 ```
+start.bat / .command / .sh   double-click to start (installs everything first time)
 run.py                 start everything
-setup.py               guided setup + health check
-demo.py                try it with fake data
+setup.py               guided setup (--add for more sources, --check for health)
+demo.py                try it with fake data (chat + dashboard in your browser)
 config.example.yaml    every setting, explained
 .env.example           every secret, with where to get it
 tools/                 the scripts that do the work (see CLAUDE.md)
@@ -278,7 +271,7 @@ tools/                 the scripts that do the work (see CLAUDE.md)
   reminders.py           notes & reminders
   sources/               one file per data source
 workflows/             plain-English guides for each job
-dashboard/index.html   the dashboard (a single file, no build step)
+dashboard/             the dashboard + the demo chat page (single files, no build step)
 data/                  your database and logins (created at runtime, gitignored)
 ```
 

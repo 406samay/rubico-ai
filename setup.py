@@ -7,6 +7,7 @@ It checks what's missing, explains where to get each key, tests that each
 one actually works, and logs in to your accounts in your browser.
 Safe to run again any time - it keeps what's already working.
 
+    python setup.py --add            add data sources later (Gmail, Calendar, bank, Spotify)
     python setup.py --check          just report what's set up, change nothing
     python setup.py --only google    redo one part (anthropic, telegram, basics,
                                      sources, google, monzo, spotify)
@@ -52,7 +53,14 @@ if os.name == "nt" and not os.environ.get("WT_SESSION"):
     BOLD = DIM = GREEN = YELLOW = RED = RESET = ""  # old Windows consoles show codes literally
 
 
-def title(text):
+PROGRESS = {"n": 0, "total": 0}
+
+
+def title(text, step=False):
+    """step=True adds "Step 2 of 3" so people always know how far along they are."""
+    if step and PROGRESS["total"]:
+        PROGRESS["n"] += 1
+        text = f"Step {PROGRESS['n']} of {PROGRESS['total']} · {text}"
     print(f"\n{BOLD}{'━' * 64}\n  {text}\n{'━' * 64}{RESET}")
 
 
@@ -126,9 +134,13 @@ def pause():
 def intro():
     title("Welcome to Rubico 👋")
     print("""
-  This will take about 10-15 minutes. You'll need:
-    • an Anthropic API key (Claude writes your brief)       - required
-    • a Telegram bot (how Rubico talks to you)               - required
+  Rubico has two halves, and setup connects both:
+    💬 Telegram  - where you get your morning brief and text Rubico all day
+    📊 Dashboard - a web page with your brief history, reminders and charts
+
+  You'll need:
+    • an Anthropic API key (Claude does the thinking)       - required
+    • a Telegram bot (made in 1 minute inside Telegram)     - required
     • your Google account, bank, Spotify...                  - all optional
 
   🔒 Your privacy, in plain English:
@@ -143,8 +155,20 @@ def intro():
 """)
 
 
+def choose_mode():
+    print(f"""  How would you like to set up?
+
+    {BOLD}1) Quick{RESET} - about 3 minutes. Claude + Telegram + your city (weather,
+       reminders, web search, dashboard). Add Gmail & more any time later
+       with:  {PY} setup.py --add
+    {BOLD}2) Full{RESET}  - about 10-15 minutes. Also connect Gmail, Calendar,
+       Monzo and Spotify now.
+""")
+    return "full" if ask("Type 1 or 2", "1").strip() == "2" else "quick"
+
+
 def step_anthropic():
-    title("Step 1 · Anthropic API key (lets Claude write your brief)")
+    title("Anthropic API key (lets Claude write your brief)", step=True)
     if config.env("ANTHROPIC_API_KEY") and check_anthropic(quiet=True):
         ok("Anthropic key already set and working.")
         if not yes("Replace it?", default=False):
@@ -197,7 +221,7 @@ def tg(method, token, **params):
 
 
 def step_telegram():
-    title("Step 2 · Telegram bot (how Rubico messages you)")
+    title("Telegram bot (where Rubico messages you)", step=True)
     token = config.env("TELEGRAM_BOT_TOKEN")
     bot = None
     if token:
@@ -262,11 +286,22 @@ def step_telegram():
     send_test_message(token)
 
 
+def add_command_menu(token):
+    import telegram_bot
+    try:
+        telegram_bot.set_commands(token)
+        ok("Added a command menu to your bot (tap the menu button next to the message box).")
+    except Exception:
+        pass
+
+
 def send_test_message(token):
     try:
         tg("sendMessage", token, chat_id=config.env("TELEGRAM_CHAT_ID"),
-           text="✅ Rubico is connected! This is where your morning brief will arrive.")
+           text="✅ Rubico is connected! This is where your morning brief will arrive, "
+                "and where you can text me any time. Once Rubico is running, send /help.")
         ok("Sent you a test message on Telegram.")
+        add_command_menu(token)
         if not yes("Did it arrive?"):
             warn("Check you pressed Start on the right bot, then run: python setup.py --only telegram")
     except Exception as e:
@@ -274,11 +309,12 @@ def send_test_message(token):
 
 
 def step_basics():
-    title("Step 3 · About you")
+    title("About you", step=True)
     cfg = config.get()
     name = ask("What should Rubico call you? (first name, or leave blank)", cfg["user"]["name"])
     city = ask("Which city are you in? (for weather + timezone)", cfg["location"]["name"])
-    location, timezone = cfg["location"], cfg["timezone"]
+    location, timezone, currency = cfg["location"], cfg["timezone"], cfg["currency"]
+    found_city = False
     if city != cfg["location"]["name"] or not config.load_user_file().get("location"):
         try:
             found = requests.get(
@@ -293,6 +329,8 @@ def step_basics():
             ok(f"Found {label} (timezone {place.get('timezone')})")
             location = {"name": place["name"], "latitude": place["latitude"], "longitude": place["longitude"]}
             timezone = place.get("timezone") or timezone
+            currency = CURRENCIES.get(place.get("country_code", "").upper(), currency)
+            found_city = True
         else:
             warn(f"Couldn't look up \"{city}\" automatically.")
             print("  Find your coordinates at https://www.latlong.net (e.g. 53.48, -2.24)")
@@ -302,7 +340,9 @@ def step_basics():
                 location = {"name": city, "latitude": lat, "longitude": lon}
             except ValueError:
                 warn(f"Keeping {cfg['location']['name']} for weather.")
-    timezone = ask("Timezone (e.g. Europe/London, America/New_York)", timezone)
+    if not found_city:
+        timezone = ask("Timezone (e.g. Europe/London, America/New_York)", timezone)
+        currency = ask("Your currency code (GBP, USD, EUR...)", currency).upper()
     while True:
         parsed = config.valid_time(ask("What time should the morning brief arrive? (24h, HH:MM)",
                                        str(cfg["briefing"]["time"])))
@@ -310,18 +350,28 @@ def step_basics():
             brief_time = f"{parsed[0]:02d}:{parsed[1]:02d}"
             break
         warn("Please use HH:MM, e.g. 07:30")
-    currency = ask("Your currency code (GBP, USD, EUR...)", cfg["currency"]).upper()
     save_config({
         "user": {"name": name}, "location": location, "timezone": timezone,
         "briefing": {"time": brief_time}, "currency": currency,
     })
-    ok("Saved to config.yaml")
+    ok(f"Saved: {location['name']} · {timezone} · {currency} · brief at {brief_time} "
+       "(change any of it later in config.yaml)")
+
+
+# Country -> currency, so setup doesn't have to ask. Anything else: it asks.
+CURRENCIES = {
+    "GB": "GBP", "US": "USD", "CA": "CAD", "AU": "AUD", "NZ": "NZD", "IE": "EUR", "IN": "INR",
+    "DE": "EUR", "FR": "EUR", "ES": "EUR", "IT": "EUR", "NL": "EUR", "BE": "EUR", "PT": "EUR",
+    "AT": "EUR", "FI": "EUR", "GR": "EUR", "SG": "SGD", "HK": "HKD", "JP": "JPY", "ZA": "ZAR",
+    "AE": "AED", "CH": "CHF", "SE": "SEK", "NO": "NOK", "DK": "DKK", "PL": "PLN", "BR": "BRL",
+    "MX": "MXN", "NG": "NGN", "KE": "KES", "PK": "PKR", "PH": "PHP", "MY": "MYR",
+}
 
 
 def step_sources():
     import sources
 
-    title("Step 4 · Choose your data sources")
+    title("Choose your data sources", step=True)
     print("  Switch on only what you want. You can change this any time in config.yaml.\n")
     updates = {}
     for src in sources.all_sources():
@@ -333,7 +383,12 @@ def step_sources():
         "Also turn on study reminders? (text \"studied <topic>\" -> review pings at 1, 3, 7, 14, 30 days)",
         default=config.feature("study_reminders").get("enabled", False))}
     save_config({"sources": updates, "features": features})
-    ok("Saved. Next we'll connect the ones you picked.")
+    config.reload()
+    extra = len(plan_for(["google", "monzo", "spotify"]))
+    if extra:
+        ok(f"Saved. {extra} more short step{'s' if extra > 1 else ''} to connect what you picked.")
+    else:
+        ok("Saved. Nothing else to connect - weather needs no login.")
 
 
 GOOGLE_SAFETY = """
@@ -362,7 +417,7 @@ def step_google():
     wants = [n for n in ("gmail", "calendar") if config.source_enabled(n)]
     if not wants:
         return
-    title("Step 5 · Connect Google (" + " + ".join(w.title() for w in wants) + ")")
+    title("Connect Google (" + " + ".join(w.title() for w in wants) + ")", step=True)
     print(GOOGLE_SAFETY.format(window=pending_actions.window_minutes()))
 
     if google_auth.client_config():
@@ -447,7 +502,7 @@ def step_google():
 def step_monzo():
     if not config.source_enabled("monzo"):
         return
-    title("Connect Monzo (UK bank)")
+    title("Connect Monzo (UK bank)", step=True)
     if not (config.env("MONZO_CLIENT_ID") and config.env("MONZO_CLIENT_SECRET")):
         print("""
   1. Sign in to the Monzo developer portal with your Monzo email
@@ -477,7 +532,7 @@ def step_monzo():
 def step_spotify():
     if not config.source_enabled("spotify"):
         return
-    title("Connect Spotify")
+    title("Connect Spotify", step=True)
     if not config.env("SPOTIFY_CLIENT_ID"):
         print("""
   1. Open the Spotify developer dashboard and click "Create app":""")
@@ -550,9 +605,34 @@ STEPS = {
 }
 
 
+QUICK = ["anthropic", "telegram", "basics"]
+ADD = ["sources", "google", "monzo", "spotify"]
+
+
+def plan_for(steps):
+    """Which steps will actually show a screen (for the "Step 2 of 5" counter)."""
+    shown = []
+    for name in steps:
+        if name == "google" and not (config.source_enabled("gmail") or config.source_enabled("calendar")):
+            continue
+        if name in ("monzo", "spotify") and not config.source_enabled(name):
+            continue
+        shown.append(name)
+    return shown
+
+
+def run_steps(steps):
+    PROGRESS["n"] = 0
+    for i, name in enumerate(steps):
+        # The source choice changes which connect steps come next.
+        PROGRESS["total"] = PROGRESS["n"] + len(plan_for(steps[i:]))
+        STEPS[name]()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Set up Rubico.")
     parser.add_argument("--check", action="store_true", help="only report status")
+    parser.add_argument("--add", action="store_true", help="add or change data sources")
     parser.add_argument("--only", choices=list(STEPS), help="run just one step")
     args = parser.parse_args()
 
@@ -562,27 +642,36 @@ def main():
     try:
         if args.only:
             STEPS[args.only]()
+        elif args.add:
+            title("Add data sources")
+            run_steps(ADD)
         else:
             intro()
-            for step in STEPS.values():
-                step()
+            mode = choose_mode()
+            run_steps(QUICK if mode == "quick" else QUICK + ADD)
     except KeyboardInterrupt:
         print("\n\n  Setup paused. Everything so far is saved - run `python setup.py` to continue.")
         return 1
 
     good = check()
     title("All done 🎉" if good else "Nearly there")
-    if good:
-        print(f"""
-  Start Rubico (leave it running):     {PY} run.py
-  Send a brief right now to test:      {PY} tools/orchestrator.py
-  Dashboard (while run.py is running): {config.dashboard_url()}
-
-  Text your bot /help to see what it can do.
-""")
-    else:
+    if not good:
         print(f"\n  Fix the items above (re-run `{PY} setup.py`), then start with `{PY} run.py`.\n")
-    return 0 if good else 1
+        return 1
+
+    print(f"""
+  💬 Telegram:  your brief arrives at {config.get()['briefing']['time']} every morning.
+                Text your bot any time - try "remind me tomorrow to ..." or /help
+  📊 Dashboard: {config.dashboard_url()}  (brief history, reminders, charts)
+
+  Rubico needs to stay running for both to work.
+  Next time, just run:  {PY} run.py   (or double-click start.bat / start.command)
+  Add Gmail, Calendar & more later:  {PY} setup.py --add
+""")
+    if sys.stdin.isatty() and yes("Start Rubico now?"):
+        import subprocess
+        return subprocess.call([sys.executable, str(ROOT / "run.py")])
+    return 0
 
 
 if __name__ == "__main__":

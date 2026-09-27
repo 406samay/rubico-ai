@@ -85,18 +85,50 @@ def dashboard_thread():
     threading.Thread(target=server.serve_forever, daemon=True, name="dashboard").start()
 
 
+def first_run_menu(missing):
+    """Not set up yet: offer the two sensible next steps instead of an error."""
+    print(f"""
+  👋 Welcome to Rubico! It isn't set up yet (missing: {', '.join(missing)}).
+
+    1) Try the demo - fake data, no accounts, takes 10 seconds
+    2) Set up Rubico - about 3 minutes for the basics
+""")
+    if not sys.stdin.isatty():
+        print("  Run `python demo.py` or `python setup.py`.")
+        return 1
+    choice = input("  Type 1 or 2 and press Enter: ").strip()
+    here = os.path.dirname(os.path.abspath(__file__))
+    script = {"1": "demo.py", "2": "setup.py"}.get(choice)
+    if not script:
+        return 1
+    import subprocess
+    return subprocess.call([sys.executable, os.path.join(here, script)])
+
+
+def announce_bot():
+    """Adds the / command menu in Telegram and remembers the bot's username
+    so the dashboard's "Open chat" button can link straight to it."""
+    import telegram_bot
+    try:
+        telegram_bot.set_commands()
+        username = telegram_bot.bot_username()
+        db.kv_set("bot_username", username)
+        log(f"Telegram: text your bot at https://t.me/{username}")
+    except Exception as e:
+        log(f"Telegram: couldn't reach the bot yet ({e}) - will keep trying")
+
+
 def main():
     missing = [k for k in ("ANTHROPIC_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID") if not config.env(k)]
     if missing:
-        print("Missing from .env: " + ", ".join(missing))
-        print("Run `python setup.py` first (or `python demo.py` to try it with fake data).")
-        return 1
+        return first_run_menu(missing)
 
     cfg = config.get()
     on = [name for name, s in cfg["sources"].items() if s.get("enabled")]
     log(f"{config.assistant_name()} starting. Sources on: {', '.join(on) or 'none'}. "
         f"Brief at {cfg['briefing']['time']} ({cfg['timezone']}).")
 
+    announce_bot()
     stop = threading.Event()
     if cfg["dashboard"].get("enabled"):
         dashboard_thread()

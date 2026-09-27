@@ -1,6 +1,11 @@
 # Workflow: Setup and fixing things
 
-**First-time setup:** `python setup.py`. It's resumable, so re-running keeps what works. Steps: Anthropic key → Telegram bot and chat link → name/city/time → pick sources → connect each (Google, Monzo, Spotify).
+**Easiest start:** double-click `start.bat` (Windows) / `start.command` (Mac), or run `./start.sh`. It creates `.venv`, installs requirements, then `run.py` shows a menu (demo or setup) until Rubico is configured.
+
+**First-time setup:** `python setup.py`. It's resumable, so re-running keeps what works.
+- **Quick** (default): Anthropic key → Telegram bot, chat link and command menu → name/city/brief time. Timezone and currency are worked out from the city.
+- **Full**: the same, plus pick sources and connect each one (Google, Monzo, Spotify).
+- **Later:** `python setup.py --add` picks and connects data sources.
 
 **Health check:** `python setup.py --check` (changes nothing, exit code 1 if anything is missing).
 

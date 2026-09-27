@@ -8,6 +8,13 @@ Serves the dashboard and its data.
   GET  /api/config      -> display settings (currency, city, which sources are on)
   POST /api/collect     -> kicks off a collection run in the background
 
+Demo mode only (python demo.py) - a Telegram-style chat in the browser, so
+you can text the bot before connecting anything:
+  GET  /chat            -> dashboard/chat.html
+  GET  /api/chat        -> the conversation so far
+  POST /api/chat        -> send a message, get the bot's replies
+These don't exist in a real install - there, you chat on Telegram itself.
+
 Safety: by default it only listens on 127.0.0.1, meaning only THIS computer
 can open it - the page can show a live bank balance. To reach it from your
 phone, change dashboard.host in config.yaml (e.g. to your Tailscale IP, or
@@ -27,6 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import config
 import db
+import llm
 import metrics_store
 import reminders
 import sources
@@ -49,6 +57,38 @@ def _run_collection():
             _collecting = False
 
 
+# ---------------------------------------------------------------- demo chat
+
+_chat_lock = threading.Lock()
+demo_chat_history = []  # [{"from": "bot"|"you", "text": ...}], seeded by demo.py
+
+
+def demo_chat_send(text):
+    """Runs a message through the real chat handler, catching what the bot
+    would have sent to Telegram instead of sending it."""
+    import chat_listener
+    import telegram_bot
+
+    import datetime
+
+    now = datetime.datetime.now(config.tz()).strftime("%H:%M")
+    replies = []
+    with _chat_lock:
+        demo_chat_history.append({"from": "you", "text": text, "time": now})
+        real_send = telegram_bot.send_message
+        telegram_bot.send_message = replies.append
+        try:
+            chat_listener.handle_message(text)
+            chat_listener.process_due_sends()
+        except Exception as e:
+            replies.append(f"Something went wrong: {type(e).__name__}: {e}")
+        finally:
+            telegram_bot.send_message = real_send
+        new = [{"from": "bot", "text": r, "time": now} for r in replies]
+        demo_chat_history.extend(new)
+    return new
+
+
 def _briefings(limit=120):
     with db.connect() as conn:
         rows = conn.execute(
@@ -68,8 +108,18 @@ def _public_config():
         "location": cfg["location"]["name"],
         "timezone": cfg["timezone"],
         "demo": config.is_demo(),
+        "claude": llm.has_key(),
         "sources": {s.name: s.enabled for s in sources.all_sources()},
+        "chat_url": _chat_url(),
     }
+
+
+def _chat_url():
+    """Where the dashboard's "Open chat" button goes."""
+    if config.is_demo():
+        return "chat"
+    username = db.kv_get("bot_username")
+    return f"https://t.me/{username}" if username else None
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -128,6 +178,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(items)
         if path == "/api/config":
             return self._json(_public_config())
+        if config.is_demo() and path == "/chat":
+            return self._send(200, (DASHBOARD_DIR / "chat.html").read_bytes(), "text/html; charset=utf-8")
+        if config.is_demo() and path == "/api/chat":
+            with _chat_lock:
+                return self._json(list(demo_chat_history))
         if path == "/api/status":
             with _collect_lock:
                 busy = _collecting
@@ -141,6 +196,15 @@ class Handler(BaseHTTPRequestHandler):
         if not self._authorised():
             return
         path = self.path.split("?", 1)[0].rstrip("/")
+        if config.is_demo() and path == "/api/chat":
+            length = min(int(self.headers.get("Content-Length") or 0), 4000)
+            try:
+                text = (json.loads(self.rfile.read(length) or b"{}").get("text") or "").strip()[:1000]
+            except (ValueError, AttributeError):
+                text = ""
+            if not text:
+                return self._json({"error": "empty message"}, 400)
+            return self._json(demo_chat_send(text))
         if path != "/api/collect":
             return self._send(404, b"not found")
 

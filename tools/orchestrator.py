@@ -24,7 +24,7 @@ import db
 import llm
 import reminders
 from data_sources import build_raw_data
-from telegram_bot import send_message
+import telegram_bot
 
 
 def write_brief(raw_data, due_reminders=()):
@@ -88,6 +88,9 @@ def run_briefing(unattended=False, writer=None, send=True):
         raw_data, broken = "(no data could be loaded)", [("every data source", "python setup.py --check")]
 
     due = reminders.due_for_briefing()
+    if writer is None and config.is_demo() and not llm.has_key():
+        from demo_data import SAMPLE_BRIEF
+        writer = lambda raw, due: SAMPLE_BRIEF  # noqa: E731
 
     try:
         brief = (writer or write_brief)(raw_data, due)
@@ -118,7 +121,7 @@ def run_briefing(unattended=False, writer=None, send=True):
     if not (send and config.is_demo()):  # demo "sending" already prints it
         print(message)
     if send:
-        send_message(message)
+        telegram_bot.send_message(message)
         print("Sent.")
     reminders.mark_delivered([r["id"] for r in due])
     save_briefing(message, broken, demo=config.is_demo())

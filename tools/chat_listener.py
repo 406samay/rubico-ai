@@ -321,7 +321,9 @@ def process_due_study_reminders():
 def handle_cancel():
     pending = pending_actions.get_latest_pending()
     if not pending:
-        send_telegram("Nothing pending to cancel. (To cancel a reminder, use /cancel <number>.)")
+        active = reminders.list_active()
+        hint = ("\n\nTo cancel a reminder, send /cancel <number>.\n\n" + reminders.format_list()) if active else ""
+        send_telegram("Nothing pending to cancel." + hint)
         return
     pending_actions.mark_status(pending["id"], "cancelled")
     send_telegram(f"Cancelled {_describe(pending)} 👍")
@@ -354,7 +356,7 @@ def handle_message(text):
 
     if lower in ("/start", "/help", "help"):
         return send_telegram(help_text())
-    if lower in CANCEL_WORDS:
+    if lower in CANCEL_WORDS or lower == "/cancel":
         return handle_cancel()
     if lower in LIST_REMINDERS:
         return send_telegram(reminders.format_list())
@@ -376,8 +378,10 @@ def handle_message(text):
         return handle_quick_reminder(stripped)
 
     if not llm.has_key():
-        return send_telegram("I need an ANTHROPIC_API_KEY in .env to answer that. "
-                             "Reminders (/reminders, /cancel) still work without it.")
+        return send_telegram(
+            "I need an ANTHROPIC_API_KEY in .env to answer that. Reminders still work "
+            "without it - try \"remind me tomorrow to ...\", /reminders or /help."
+        )
 
     raw_data, _broken = build_raw_data()
     answer = ask_claude(stripped, raw_data)

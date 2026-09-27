@@ -180,6 +180,12 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 }
 .chrome__title { font-size: 1rem; font-weight: 650; letter-spacing: -0.01em; }
 .chrome__meta { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.chat-link {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px;
+  border-radius: 999px; background: var(--sky); color: #fff; font-weight: 600; font-size: 0.86rem;
+  text-decoration: none; white-space: nowrap;
+}
+.chat-link[hidden] { display: none; }
 
 .dot-live {
   width: 7px; height: 7px; border-radius: 50%;
@@ -546,6 +552,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 <header class="chrome">
   <span class="chrome__title" id="brandTitle">Rubico</span>
   <div class="chrome__meta">
+    <a class="chat-link" id="chatLink" hidden title="Text your assistant">💬 <span>Open chat</span></a>
     <span class="dot-live" id="liveDot" title=""></span>
     <span class="caption num" id="freshness">—</span>
     <button class="icon-btn" id="refreshBtn" title="Refresh data" aria-label="Refresh data">
@@ -1900,6 +1907,12 @@ async function refresh(initial) {
     state.briefings = briefings || [];
     state.reminders = reminders || [];
     try { MONEY = new Intl.NumberFormat(state.cfg.locale || "en-GB", { style: "currency", currency: state.cfg.currency || "GBP" }); } catch (_) {}
+    const chatLink = document.getElementById("chatLink");
+    if (state.cfg.chat_url) {
+      chatLink.href = state.cfg.chat_url;
+      chatLink.hidden = false;
+      if (!state.cfg.demo) { chatLink.target = "_blank"; chatLink.rel = "noopener"; }
+    }
     document.getElementById("brandTitle").textContent = (state.cfg.assistant || "Rubico") + (state.cfg.demo ? " · demo" : "");
     state.days = payload.days || {};
     state.meta = payload.meta || {};

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rubico chat (demo)</title>
+<style>
+/* A Telegram-style chat so the demo shows what using Rubico feels like.
+   In a real install you chat with your bot in the Telegram app itself. */
+:root {
+  --bg: #DDE7D3;
+  --bg-2: #C9D8BD;
+  --bar: #FFFFFF;
+  --bar-text: #111418;
+  --muted: #707579;
+  --bot: #FFFFFF;
+  --you: #E3FDD0;
+  --text: #111418;
+  --accent: #3390EC;
+  --chip: rgba(255, 255, 255, 0.82);
+  --shadow: 0 1px 1.5px rgba(16, 35, 47, 0.14);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1A23; --bg-2: #13212C; --bar: #17212B; --bar-text: #F5F5F5; --muted: #8A98A5;
+    --bot: #182533; --you: #2B5278; --text: #F2F4F6; --accent: #5EB5F7;
+    --chip: rgba(24, 37, 51, 0.9); --shadow: 0 1px 1.5px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1A23; --bg-2: #13212C; --bar: #17212B; --bar-text: #F5F5F5; --muted: #8A98A5;
+  --bot: #182533; --you: #2B5278; --text: #F2F4F6; --accent: #5EB5F7;
+  --chip: rgba(24, 37, 51, 0.9); --shadow: 0 1px 1.5px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font: 15px/1.42 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at 20% 10%, var(--bg-2), transparent 45%),
+              radial-gradient(circle at 80% 90%, var(--bg-2), transparent 40%), var(--bg);
+  display: flex; justify-content: center;
+}
+.app { width: 100%; max-width: 640px; height: 100dvh; display: flex; flex-direction: column; }
+.bar {
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: var(--bar); color: var(--bar-text); box-shadow: var(--shadow); z-index: 1;
+}
+.avatar {
+  width: 40px; height: 40px; border-radius: 50%; flex: none;
+  background: linear-gradient(135deg, #FFB347, #FF8C42); color: #fff;
+  display: grid; place-items: center; font-weight: 700; font-size: 18px;
+}
+.bar__name { font-weight: 600; }
+.bar__sub { font-size: 13px; color: var(--muted); }
+.bar__link {
+  margin-left: auto; color: var(--accent); text-decoration: none; font-size: 14px; font-weight: 500;
+  padding: 6px 10px; border-radius: 8px;
+}
+.bar__link:hover { background: rgba(51, 144, 236, 0.1); }
+.note {
+  align-self: center; margin: 12px 16px 4px; padding: 5px 12px; border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18); color: #fff; font-size: 13px; text-align: center;
+}
+.messages { flex: 1; overflow-y: auto; padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+.msg {
+  max-width: min(85%, 480px); padding: 7px 11px 6px; border-radius: 14px; box-shadow: var(--shadow);
+  white-space: pre-wrap; overflow-wrap: anywhere; position: relative;
+}
+.msg--bot { align-self: flex-start; background: var(--bot); border-bottom-left-radius: 5px; }
+.msg--you { align-self: flex-end; background: var(--you); border-bottom-right-radius: 5px; }
+.msg__time { float: right; margin: 6px 0 -4px 10px; font-size: 11.5px; color: var(--muted); }
+.typing { align-self: flex-start; color: var(--muted); font-size: 13px; padding: 4px 8px; }
+.chips { display: flex; gap: 6px; overflow-x: auto; padding: 6px 12px 2px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; border: 0; border-radius: 16px; padding: 6px 12px; cursor: pointer;
+  background: var(--chip); color: var(--accent); font: inherit; font-size: 13.5px; box-shadow: var(--shadow);
+}
+.composer { display: flex; gap: 8px; padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); }
+.composer input {
+  flex: 1; min-width: 0; border: 0; border-radius: 22px; padding: 11px 16px;
+  background: var(--bar); color: var(--text); font: inherit; box-shadow: var(--shadow); outline: none;
+}
+.composer button {
+  width: 44px; height: 44px; border: 0; border-radius: 50%; flex: none; cursor: pointer;
+  background: var(--accent); color: #fff; display: grid; place-items: center; box-shadow: var(--shadow);
+}
+.composer button:disabled { opacity: 0.5; cursor: default; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="avatar" id="avatar">R</div>
+    <div>
+      <div class="bar__name" id="botName">Rubico</div>
+      <div class="bar__sub">bot · demo with fake data</div>
+    </div>
+    <a class="bar__link" href="./">📊 Dashboard</a>
+  </header>
+
+  <div class="note" id="note">This is what Rubico looks like in Telegram. Try texting it below 👇</div>
+  <div class="messages" id="messages" aria-live="polite"></div>
+
+  <div class="chips" id="chips"></div>
+  <form class="composer" id="composer" autocomplete="off">
+    <input id="input" placeholder="Message" aria-label="Message" maxlength="1000">
+    <button id="send" type="submit" aria-label="Send">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6l.01 6.53L15 12 3.41 13.87z"/></svg>
+    </button>
+  </form>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const time = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+
+function add(from, text, when) {
+  const node = document.createElement("div");
+  node.className = `msg msg--${from}`;
+  node.innerHTML = `${esc(text)}<span class="msg__time">${esc(when || time())}</span>`;
+  $("messages").appendChild(node);
+  $("messages").scrollTop = $("messages").scrollHeight;
+}
+
+const OFFLINE = [
+  "remind me tomorrow to submit the form", "note to self: call mum",
+  "remind me on friday to pay rent", "/reminders", "/cancel 2", "/brief", "/help",
+];
+const WITH_CLAUDE = [
+  "What needs a reply today?", "delete the promo emails", "reply to Jordan saying I'm in",
+  "How much did I spend this week?", "search who won the last f1 race",
+];
+
+async function send(text) {
+  text = text.trim();
+  if (!text) return;
+  add("you", text);
+  $("input").value = "";
+  $("send").disabled = true;
+  const typing = document.createElement("div");
+  typing.className = "typing";
+  typing.textContent = "Rubico is typing…";
+  $("messages").appendChild(typing);
+  $("messages").scrollTop = $("messages").scrollHeight;
+  try {
+    const res = await fetch("api/chat", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }),
+    });
+    const replies = await res.json();
+    typing.remove();
+    (Array.isArray(replies) ? replies : []).forEach((r) => add("bot", r.text, r.time));
+  } catch (err) {
+    typing.remove();
+    add("bot", `Couldn't reach the demo server (${err.message}). Is demo.py still running?`);
+  } finally {
+    $("send").disabled = false;
+    $("input").focus();
+  }
+}
+
+async function boot() {
+  let cfg = {};
+  try { cfg = await (await fetch("api/config")).json(); } catch (_) {}
+  const name = cfg.assistant || "Rubico";
+  $("botName").textContent = name;
+  $("avatar").textContent = name[0].toUpperCase();
+  document.title = `${name} chat (demo)`;
+
+  const chips = [...(cfg.claude ? WITH_CLAUDE : []), ...OFFLINE];
+  $("chips").innerHTML = chips.map((c) => `<button class="chip" type="button">${esc(c)}</button>`).join("");
+  $("chips").querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => send(b.textContent)));
+
+  try {
+    const history = await (await fetch("api/chat")).json();
+    history.forEach((m) => add(m.from, m.text, m.time));
+  } catch (_) {}
+  if (!cfg.claude) {
+    $("note").textContent = "This is what Rubico looks like in Telegram. Reminders and commands work " +
+      "in this demo - add ANTHROPIC_API_KEY to .env and restart to ask it anything about the fake data.";
+  }
+}
+
+$("composer").addEventListener("submit", (e) => { e.preventDefault(); send($("input").value); });
+boot();
+</script>
+</body>
+</html>
