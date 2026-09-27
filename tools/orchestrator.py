@@ -105,7 +105,8 @@ def run_briefing(unattended=False, writer=None, send=True):
     if due:
         parts.append(reminders_block(due))
     if config.get()["dashboard"].get("enabled"):
-        parts.append(f"Dashboard: {config.dashboard_url()}")
+        parts.append(f"📊 Dashboard: {config.dashboard_url()}" + (
+            " (opens on the computer running Rubico)" if config.dashboard_is_local() else ""))
     if broken:
         # Surface dead sources in the message itself, with the exact fix.
         # An expired login used to fail invisibly; now it shows up every

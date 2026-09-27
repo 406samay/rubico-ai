@@ -383,7 +383,9 @@ def handle_message(text):
             "without it - try \"remind me tomorrow to ...\", /reminders or /help."
         )
 
-    raw_data, _broken = build_raw_data()
+    # allow_browser=False: a dead Google login must not freeze the chat
+    # waiting on a browser window nobody will see.
+    raw_data, _broken = build_raw_data(allow_browser=False)
     answer = ask_claude(stripped, raw_data)
     action = try_parse_action(answer)
     kind = action["action"] if action else None

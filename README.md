@@ -88,8 +88,9 @@ Your bot only ever replies to *you*. Messages from anyone else are ignored.
 
 ## 📊 Dashboard: your history at a glance
 
-Tap the link at the bottom of every brief, or go to <http://127.0.0.1:8600> while
-Rubico is running:
+Go to <http://127.0.0.1:8600> on the computer running Rubico. Want it on your **phone**
+too? Say yes when setup asks, and the dashboard opens on your home Wi-Fi with a password.
+The link at the bottom of every brief then works from your phone.
 
 - **Every morning brief you've received.** Flick the day strip to reread any day.
 - **Your reminders**, and when each one will come back.
@@ -98,6 +99,8 @@ Rubico is running:
 - An **Open chat** button that jumps straight to your bot in Telegram.
 
 It's private by default, so only your own computer can open it (see [Privacy](#-privacy--safety)).
+Using [Tailscale](https://tailscale.com)? Set `dashboard.host` to your Tailscale IP to open
+it from anywhere.
 
 ---
 

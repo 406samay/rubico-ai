@@ -107,7 +107,7 @@ def describe_due(reminder, on_date=None):
         return "today"
     if delta == 1:
         return "tomorrow"
-    return due.strftime("%a %d %b")
+    return due.strftime("%a %d %b" if due.year == on_date.year else "%a %d %b %Y")
 
 
 def format_list(items=None):
@@ -121,11 +121,21 @@ def format_list(items=None):
     return "\n".join(lines)
 
 
+def briefed_today():
+    return db.kv_get("last_briefing_date") == today().isoformat()
+
+
 def confirmation(reminder_id):
     r = get(reminder_id)
     when = describe_due(r)
-    when_text = "in your next morning brief" if when == "next brief" else f"in the morning brief {when}"
-    if when not in ("next brief", "today", "tomorrow"):
+    if when in ("next brief", "today") and briefed_today():
+        # Today's brief has already gone out, so be honest about when it's coming.
+        when_text = "in tomorrow's morning brief (today's has already been sent)"
+    elif when == "next brief":
+        when_text = "in your next morning brief"
+    elif when in ("today", "tomorrow"):
+        when_text = f"in the morning brief {when}"
+    else:
         when_text = f"in the morning brief on {when}"
     return f"Saved as reminder #{r['id']} 📌 I'll bring it up {when_text}:\n\"{r['text']}\""
 

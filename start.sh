@@ -19,7 +19,14 @@ fi
 
 if [ ! -x .venv/bin/python ]; then
   echo "First run: setting things up (about a minute)..."
-  "$PY" -m venv .venv
+  if ! "$PY" -m venv .venv; then
+    rm -rf .venv
+    echo ""
+    echo "Couldn't create Python's private folder (.venv)."
+    echo "On Ubuntu/Debian/Raspberry Pi OS, run this once, then try again:"
+    echo "    sudo apt install python3-venv"
+    exit 1
+  fi
 fi
 if [ ! -f .venv/.installed ] || [ requirements.txt -nt .venv/.installed ]; then
   .venv/bin/python -m pip install --quiet --upgrade pip

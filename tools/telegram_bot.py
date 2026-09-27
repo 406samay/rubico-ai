@@ -22,9 +22,11 @@ def _token():
     return token
 
 
-def call(method, token=None, timeout=35, **params):
+def call(method, token=None, http_timeout=35, **params):
+    """params go to Telegram as-is (Telegram has its own `timeout` parameter
+    for long polling, so the network timeout here is called http_timeout)."""
     resp = requests.post(
-        API.format(token=token or _token(), method=method), json=params, timeout=timeout
+        API.format(token=token or _token(), method=method), json=params, timeout=http_timeout
     )
     resp.raise_for_status()
     return resp.json()["result"]
@@ -49,14 +51,14 @@ def send_message(text):
     if not chat_id:
         raise RuntimeError("TELEGRAM_CHAT_ID is missing from .env - run setup.py.")
     for part in _chunks(text):
-        call("sendMessage", timeout=20, chat_id=chat_id, text=part)
+        call("sendMessage", http_timeout=20, chat_id=chat_id, text=part)
 
 
 def get_updates(offset=None, timeout=30):
     params = {"timeout": timeout}
     if offset is not None:
         params["offset"] = offset
-    return call("getUpdates", timeout=timeout + 5, **params)
+    return call("getUpdates", http_timeout=timeout + 5, **params)
 
 
 # Shows up when you tap the menu button in Telegram, so nobody has to
@@ -70,9 +72,9 @@ COMMANDS = [
 
 
 def set_commands(token=None):
-    call("setMyCommands", token=token, timeout=20,
+    call("setMyCommands", token=token, http_timeout=20,
          commands=[{"command": c, "description": d} for c, d in COMMANDS])
 
 
 def bot_username(token=None):
-    return call("getMe", token=token, timeout=20)["username"]
+    return call("getMe", token=token, http_timeout=20)["username"]

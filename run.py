@@ -80,7 +80,12 @@ def scheduler_loop(stop):
 def dashboard_thread():
     import dashboard_server
 
-    server = dashboard_server.make_server()
+    try:
+        server = dashboard_server.make_server()
+    except OSError as e:
+        log(f"Dashboard couldn't start ({e}). Is another copy of Rubico or the demo running? "
+            "Change dashboard.port in config.yaml to use a different port.")
+        return
     log(f"Dashboard: {config.dashboard_url()}")
     threading.Thread(target=server.serve_forever, daemon=True, name="dashboard").start()
 

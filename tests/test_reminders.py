@@ -53,3 +53,16 @@ def test_claude_parse_null_means_next_brief_and_past_dates_clamp(monkeypatch):
     assert reminders.parse_with_claude("note: call mum", BASE)[1] is None
     monkeypatch.setattr(llm, "ask", lambda *a, **k: '{"text": "Old", "due": "2020-01-01"}')
     assert reminders.parse_with_claude("x", BASE)[1] == BASE
+
+
+def test_confirmation_is_honest_after_todays_brief():
+    import db
+    reminder_id = reminders.add("Water plants", None)
+    assert "next morning brief" in reminders.confirmation(reminder_id)
+    db.kv_set("last_briefing_date", reminders.today().isoformat())
+    assert "tomorrow's morning brief" in reminders.confirmation(reminder_id)
+
+
+def test_far_dates_show_the_year():
+    r = {"due_date": "2099-01-01"}
+    assert reminders.describe_due(r, BASE).endswith("2099")

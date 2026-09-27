@@ -350,12 +350,47 @@ def step_basics():
             brief_time = f"{parsed[0]:02d}:{parsed[1]:02d}"
             break
         warn("Please use HH:MM, e.g. 07:30")
-    save_config({
+    updates = {
         "user": {"name": name}, "location": location, "timezone": timezone,
         "briefing": {"time": brief_time}, "currency": currency,
-    })
+    }
+    updates.update(ask_phone_dashboard())
+    save_config(updates)
     ok(f"Saved: {location['name']} · {timezone} · {currency} · brief at {brief_time} "
        "(change any of it later in config.yaml)")
+
+
+def lan_ip():
+    """This computer's address on your home network (no data is sent)."""
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("192.168.0.1", 9))  # picks the right network card; nothing is sent
+        return s.getsockname()[0]
+    except OSError:
+        return None
+    finally:
+        s.close()
+
+
+def ask_phone_dashboard():
+    """The dashboard is private to this computer by default. Offer to open it
+    to your phone on the same Wi-Fi - with a password."""
+    print(f"""
+  📊 The dashboard opens on this computer by default (safest). You can also open
+     it on your phone when you're on the same Wi-Fi - it'll need a password.""")
+    if not yes("Open the dashboard to your phone too?", default=config.get()["dashboard"]["host"] != "127.0.0.1"):
+        return {"dashboard": {"host": "127.0.0.1", "public_url": ""}}
+    ip = lan_ip() or ask("This computer's local IP address (e.g. 192.168.1.20)")
+    password = config.env("DASHBOARD_PASSWORD")
+    if not password or yes("Change the dashboard password?", default=False):
+        while not password:
+            password = secret("Choose a dashboard password")
+        save_env("DASHBOARD_PASSWORD", password)
+    port = config.get()["dashboard"]["port"]
+    ok(f"On your phone (same Wi-Fi) open http://{ip}:{port}/ - any username, your password.")
+    warn("If your computer asks whether to allow network access for Python, click Allow (private networks).")
+    return {"dashboard": {"host": "0.0.0.0", "public_url": f"http://{ip}:{port}/"}}
 
 
 # Country -> currency, so setup doesn't have to ask. Anything else: it asks.

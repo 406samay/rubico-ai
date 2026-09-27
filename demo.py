@@ -23,9 +23,9 @@ Options:
 import argparse
 import datetime
 import os
-import shutil
 import sys
 import threading
+import time
 import webbrowser
 
 os.environ["RUBICO_DEMO"] = "1"  # must be set before any tool is imported
@@ -41,9 +41,11 @@ def seed(days=45):
     import reminders
     import sources
 
-    folder = config.data_dir()
-    shutil.rmtree(folder, ignore_errors=True)  # fresh fake data every run
-    folder.mkdir(parents=True, exist_ok=True)
+    config.data_dir()  # make sure the demo folder exists
+    # Fresh fake data every run. Only ever delete the demo's own database -
+    # never a folder - so a mistake can't touch anyone's real data.
+    if config.is_demo() and db.db_path().exists():
+        db.db_path().unlink()
 
     dates = list(metrics_store.date_range(days - 1))
     store = {"meta": {"currency": config.get()["currency"]}, "days": {}}
@@ -126,8 +128,17 @@ def main():
         brief = orchestrator.run_briefing(writer=lambda raw, due: SAMPLE_BRIEF)
     dashboard_server.demo_chat_history.append({"from": "bot", "text": brief, "time": config.get()["briefing"]["time"]})
 
-    server = dashboard_server.make_server(host="127.0.0.1", port=args.port)
-    url = f"http://127.0.0.1:{args.port}/"
+    server = None
+    for port in range(args.port, args.port + 20):  # skip ports already in use
+        try:
+            server = dashboard_server.make_server(host="127.0.0.1", port=port)
+            break
+        except OSError:
+            continue
+    if server is None:
+        print(f"Couldn't find a free port near {args.port}. Try: python demo.py --port 9100")
+        return 1
+    url = f"http://127.0.0.1:{server.server_address[1]}/"
     threading.Thread(target=server.serve_forever, daemon=True).start()
     print(f"\n💬 Chat with the bot:  {url}chat")
     print(f"📊 Dashboard:          {url}")
@@ -141,7 +152,8 @@ def main():
     else:
         print("\nPress Ctrl+C to stop.")
         try:
-            threading.Event().wait()
+            while True:  # a plain sleep loop so Ctrl+C works on Windows too
+                time.sleep(1)
         except KeyboardInterrupt:
             pass
     print("\nDemo finished. When you're ready for the real thing: python setup.py")

@@ -222,6 +222,12 @@ def parse_time(value, default="08:00"):
     return valid_time(value) or valid_time(default) or (8, 0)
 
 
+def dashboard_is_local():
+    """True when only this computer can open the dashboard (the safe default)."""
+    dash = get()["dashboard"]
+    return not dash.get("public_url") and dash.get("host", "127.0.0.1") in ("127.0.0.1", "localhost", "::1")
+
+
 def python_cmd():
     """How to run Python on this machine, for messages that tell you what to type."""
     return "python" if os.name == "nt" else "python3"

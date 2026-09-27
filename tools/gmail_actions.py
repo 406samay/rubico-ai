@@ -21,7 +21,7 @@ def get_reply_context(account_label, gmail_message_id):
         match = next((e for e in demo_emails(account_label) if e["id"] == gmail_message_id), None)
         return {"thread_id": "demo-thread", "message_id_header": "",
                 "subject": match["subject"] if match else "(demo)", "from": match["from"] if match else ""}
-    service = gmail_service(account_label)
+    service = gmail_service(account_label, allow_browser=False)
 
     full = service.users().messages().get(
         userId="me", id=gmail_message_id, format="metadata",
@@ -41,7 +41,7 @@ def send_reply(account_label, to, subject, thread_id, in_reply_to_header, body):
     if config.is_demo():
         print(f"(demo) would send reply to {to}")
         return {"id": "demo"}
-    service = gmail_service(account_label)
+    service = gmail_service(account_label, allow_browser=False)
 
     mime_msg = MIMEText(body)
     mime_msg["To"] = to
@@ -60,7 +60,7 @@ def list_promotional_emails(account_label, max_results=200):
     """Uses Gmail's own Promotions-tab classification, not a guess."""
     if config.is_demo():
         return [e for e in demo_emails(account_label) if "deals@" in e["from"]]
-    service = gmail_service(account_label)
+    service = gmail_service(account_label, allow_browser=False)
 
     results = service.users().messages().list(
         userId="me", labelIds=["CATEGORY_PROMOTIONS"], maxResults=max_results
@@ -89,7 +89,7 @@ def search_messages(account_label, query, max_results=50):
         words = [w.strip('"()').lower() for w in query.replace(":", " ").split() if len(w) > 3]
         return [dict(e, date="") for e in demo_emails(account_label)
                 if any(w in (e["from"] + e["subject"]).lower() for w in words)]
-    service = gmail_service(account_label)
+    service = gmail_service(account_label, allow_browser=False)
 
     results = service.users().messages().list(
         userId="me", q=query, maxResults=max_results
@@ -116,7 +116,7 @@ def trash_messages(account_label, message_ids):
     if config.is_demo():
         print(f"(demo) would move {len(message_ids)} emails to Trash")
         return list(message_ids)
-    service = gmail_service(account_label)
+    service = gmail_service(account_label, allow_browser=False)
 
     trashed = []
     for message_id in message_ids:
