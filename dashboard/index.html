@@ -553,6 +553,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   <span class="chrome__title" id="brandTitle">Rubico</span>
   <div class="chrome__meta">
     <a class="chat-link" id="chatLink" hidden title="Text your assistant">💬 <span>Open chat</span></a>
+    <a class="icon-btn" id="settingsLink" href="setup" title="Settings" aria-label="Settings" hidden
+       style="text-decoration:none;display:grid;place-items:center;font-size:16px">⚙️</a>
     <span class="dot-live" id="liveDot" title=""></span>
     <span class="caption num" id="freshness">—</span>
     <button class="icon-btn" id="refreshBtn" title="Refresh data" aria-label="Refresh data">
@@ -1907,6 +1909,7 @@ async function refresh(initial) {
     state.briefings = briefings || [];
     state.reminders = reminders || [];
     try { MONEY = new Intl.NumberFormat(state.cfg.locale || "en-GB", { style: "currency", currency: state.cfg.currency || "GBP" }); } catch (_) {}
+    document.getElementById("settingsLink").hidden = !!state.cfg.demo;
     const chatLink = document.getElementById("chatLink");
     if (state.cfg.chat_url) {
       chatLink.href = state.cfg.chat_url;

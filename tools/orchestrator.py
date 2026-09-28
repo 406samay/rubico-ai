@@ -113,7 +113,7 @@ def run_briefing(unattended=False, writer=None, send=True):
         # morning until it's reconnected.
         fixes = []
         for name, hint in broken:
-            fix = f" -> run: {hint}" if hint else ""
+            fix = (f" -> {hint}" if hint.startswith("open ") else f" -> run: {hint}") if hint else ""
             fixes.append(f"• {name.split(' (')[0]}{fix}")
             print(f"BROKEN SOURCE: {name}")
         parts.append("⚠️ Couldn't reach:\n" + "\n".join(fixes))

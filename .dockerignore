@@ -1,0 +1,12 @@
+# Never bake personal files into the image
+.env
+config.yaml
+data/
+credentials.json
+*.db
+.venv/
+venv/
+__pycache__/
+.git/
+.pytest_cache/
+tests/

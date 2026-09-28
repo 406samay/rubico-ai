@@ -123,10 +123,35 @@ def announce_bot():
         log(f"Telegram: couldn't reach the bot yet ({e}) - will keep trying")
 
 
+ESSENTIALS = ("ANTHROPIC_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
+
+
+def missing_essentials():
+    return [k for k in ESSENTIALS if not config.env(k)]
+
+
+def wait_for_web_setup():
+    """Cloud mode: no terminal, so setup happens in the browser. Keep the web
+    page up and start the bot as soon as the essentials are filled in."""
+    url = (config.dashboard_url().rstrip("/") + "/setup") if config.public_url() else "your Railway address + /setup"
+    log(f"Waiting for setup - open {url} (log in with your DASHBOARD_PASSWORD)")
+    while missing_essentials():
+        time.sleep(3)
+    config.reload()
+    log("Setup complete - starting the bot.")
+
+
 def main():
-    missing = [k for k in ("ANTHROPIC_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID") if not config.env(k)]
-    if missing:
-        return first_run_menu(missing)
+    cloud = config.is_cloud()
+    if missing_essentials() and not cloud:
+        return first_run_menu(missing_essentials())
+
+    if cloud:
+        log(f"Running in cloud mode. Data folder: {config.data_dir()}"
+            + ("" if config.has_persistent_storage() else "  ⚠️ NO VOLUME - data will be lost on update!"))
+        dashboard_thread()  # the setup page lives here, so it always starts first
+        if missing_essentials():
+            wait_for_web_setup()
 
     cfg = config.get()
     on = [name for name, s in cfg["sources"].items() if s.get("enabled")]
@@ -135,7 +160,7 @@ def main():
 
     announce_bot()
     stop = threading.Event()
-    if cfg["dashboard"].get("enabled"):
+    if cfg["dashboard"].get("enabled") and not cloud:
         dashboard_thread()
     threading.Thread(target=scheduler_loop, args=(stop,), daemon=True, name="scheduler").start()
 

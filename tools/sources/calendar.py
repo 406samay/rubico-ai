@@ -52,6 +52,10 @@ class CalendarSource(DataSource):
     description = "Today's events, so the brief knows what your day looks like."
     fix_hint = "python tools/reauth_google.py"
 
+    def fix_command(self):
+        cmd = super().fix_command()
+        return cmd.replace("#calendar", "#google")
+
     @property
     def accounts(self):
         return self.settings.get("accounts") or []

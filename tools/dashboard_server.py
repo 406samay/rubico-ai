@@ -7,6 +7,8 @@ Serves the dashboard and its data.
   GET  /api/reminders   -> active reminders
   GET  /api/config      -> display settings (currency, city, which sources are on)
   POST /api/collect     -> kicks off a collection run in the background
+  GET  /setup           -> setup in the browser (tools/web_setup.py)
+  GET  /healthz         -> "ok" (no password; for hosting health checks)
 
 Demo mode only (python demo.py) - a Telegram-style chat in the browser, so
 you can text the bot before connecting anything:
@@ -142,9 +144,15 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(code, json.dumps(payload).encode(), "application/json; charset=utf-8")
 
     def _authorised(self):
-        """Optional password (DASHBOARD_PASSWORD in .env). Any username works."""
+        """Password check (DASHBOARD_PASSWORD). Any username works.
+        Optional on your own computer; always required in the cloud."""
         password = config.env("DASHBOARD_PASSWORD")
         if not password:
+            if config.is_cloud():
+                self._send(503, "Rubico needs a password before it can be opened on the internet.\n\n"
+                                "In Railway: open your Rubico service -> Variables -> add "
+                                "DASHBOARD_PASSWORD with a password of your choice.".encode())
+                return False
             return True
         header = self.headers.get("Authorization", "")
         if header.startswith("Basic "):
@@ -157,10 +165,46 @@ class Handler(BaseHTTPRequestHandler):
         self._send(401, b"password required", extra={"WWW-Authenticate": 'Basic realm="Rubico"'})
         return False
 
+    def _base_url(self):
+        """This server's address as the browser sees it (for login redirects)."""
+        if config.is_cloud() and config.public_url():
+            return config.public_url().rstrip("/")
+        proto = self.headers.get("X-Forwarded-Proto", "http").split(",")[0].strip()
+        return f"{proto}://{self.headers.get('Host', 'localhost')}"
+
+    def _redirect(self, location):
+        return self._send(303, b"", extra={"Location": location})
+
+    def _same_origin(self):
+        """Blocks other websites from submitting forms to Rubico (CSRF)."""
+        from urllib.parse import urlparse
+
+        source = self.headers.get("Origin") or self.headers.get("Referer")
+        if not source or source == "null":
+            return True  # non-browser clients (curl) don't send one
+        return urlparse(source).netloc == self.headers.get("Host", "")
+
     def do_GET(self):
+        path = self.path.split("?", 1)[0].rstrip("/") or "/"
+        if path == "/healthz":
+            return self._send(200, b"ok")
         if not self._authorised():
             return
-        path = self.path.split("?", 1)[0].rstrip("/") or "/"
+        query = self.path.split("?", 1)[1] if "?" in self.path else ""
+
+        if path.startswith("/setup") and config.is_demo():
+            return self._send(404, b"Setup isn't available in the demo. Run: python setup.py")
+        if path == "/setup":
+            import web_setup
+            return self._send(200, web_setup.render(self._base_url(), query).encode(), "text/html; charset=utf-8")
+        if path in ("/setup/google/callback", "/setup/monzo/callback", "/setup/spotify/callback"):
+            import web_setup
+            kind = path.split("/")[2]
+            return self._redirect(web_setup.handle_callback(kind, query, self._base_url(), self.path))
+        if path in ("/", "/index.html") and not config.is_demo():
+            import web_setup
+            if config.is_cloud() and not web_setup.essentials_done():
+                return self._redirect("/setup")
 
         if path in ("/", "/index.html"):
             index = DASHBOARD_DIR / "index.html"
@@ -195,7 +239,16 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._authorised():
             return
+        if not self._same_origin():
+            return self._send(403, b"blocked: request came from another website")
         path = self.path.split("?", 1)[0].rstrip("/")
+        if path.startswith("/setup/"):
+            if config.is_demo():
+                return self._send(404, b"Setup isn't available in the demo.")
+            import web_setup
+            length = min(int(self.headers.get("Content-Length") or 0), 20000)
+            body = self.rfile.read(length)
+            return self._redirect(web_setup.handle_post(path[len("/setup/"):], body, self._base_url()))
         if config.is_demo() and path == "/api/chat":
             length = min(int(self.headers.get("Content-Length") or 0), 4000)
             try:

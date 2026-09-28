@@ -71,6 +71,7 @@ A self-hosted morning brief + Telegram assistant. Map of where things live:
 | Dashboard | `workflows/dashboard.md` | `tools/dashboard_server.py`, `tools/collect_metrics.py`, `dashboard/index.html` |
 | Setup & fixing logins | `workflows/setup_and_troubleshooting.md` | `setup.py`, `tools/reauth_google.py`, `tools/sources/*_auth.py` |
 | Adding a data source | `workflows/add_data_source.md` | `tools/sources/_template.py`, `tools/sources/base.py` |
+| Cloud hosting (Railway) + browser setup | `workflows/deploy_railway.md` | `Dockerfile`, `railway.json`, `tools/web_setup.py`, `tools/config.py` (cloud mode) |
 
 Ground rules for this repo:
 - Nothing personal in code. Settings go in `config.yaml` (read via `tools/config.py`) and secrets in `.env`. `tests/test_config.py` enforces this.

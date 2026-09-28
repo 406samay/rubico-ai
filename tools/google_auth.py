@@ -103,6 +103,9 @@ def _granted_scopes(path):
 
 
 def login_needed_message(label):
+    if config.is_cloud():
+        return (f"The Google login for '{label}' needs renewing - sign in again at "
+                f"{config.dashboard_url().rstrip('/')}/setup#google")
     return (
         f"The Google login for '{label}' needs renewing. "
         f"Run: {config.python_cmd()} tools/reauth_google.py"
@@ -177,3 +180,51 @@ def account_email(label, allow_browser=False):
         return service.users().getProfile(userId="me").execute().get("emailAddress")
     service = build("calendar", "v3", credentials=creds, cache_discovery=False)
     return service.calendars().get(calendarId="primary").execute().get("id")
+
+
+# ---------------------------------------------------------------- web login
+# Used by the browser setup page (tools/web_setup.py), e.g. on Railway where
+# there's no desktop browser: Google sends you back to
+#   https://<your-rubico-address>/setup/google/callback
+# which must be listed under "Authorized redirect URIs" on a *Web application*
+# OAuth client in Google Cloud Console.
+
+def _web_client_config(redirect_uri):
+    client = client_config()
+    if not client:
+        raise RuntimeError("Add your Google OAuth Client ID and secret first.")
+    info = dict(client.get("web") or client.get("installed"))
+    info["redirect_uris"] = [redirect_uri]
+    return {"web": info}
+
+
+def _web_flow(label, redirect_uri, state=None, code_verifier=None):
+    from google_auth_oauthlib.flow import Flow
+
+    # Google may report scopes in a different order/format than requested;
+    # that's not an error for us.
+    os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
+    if redirect_uri.startswith("http://"):
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # local testing only (http://127.0.0.1)
+    return Flow.from_client_config(
+        _web_client_config(redirect_uri), scopes=scopes_for(label), redirect_uri=redirect_uri,
+        state=state, code_verifier=code_verifier, autogenerate_code_verifier=code_verifier is None,
+    )
+
+
+def web_login_url(label, redirect_uri):
+    """Returns (url to send the browser to, state, code_verifier)."""
+    flow = _web_flow(label, redirect_uri)
+    url, state = flow.authorization_url(access_type="offline", prompt="consent")
+    return url, state, flow.code_verifier
+
+
+def web_login_finish(label, redirect_uri, state, code_verifier, callback_url):
+    """Swaps the code Google sent back for a saved login. Returns the email."""
+    flow = _web_flow(label, redirect_uri, state=state, code_verifier=code_verifier)
+    flow.fetch_token(authorization_response=callback_url)
+    _save_token(flow.credentials, token_file(label))
+    try:
+        return account_email(label)
+    except Exception:
+        return None

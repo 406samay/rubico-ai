@@ -61,6 +61,28 @@ class CallbackHandler(BaseHTTPRequestHandler):
         pass
 
 
+def login_url(redirect_uri, state):
+    return "https://auth.monzo.com/?" + urlencode({
+        "client_id": config.env("MONZO_CLIENT_ID"),
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "state": state,
+    })
+
+
+def exchange_code(code, redirect_uri):
+    """Swaps Monzo's one-time code for tokens and saves them."""
+    resp = requests.post("https://api.monzo.com/oauth2/token", data={
+        "grant_type": "authorization_code",
+        "client_id": config.env("MONZO_CLIENT_ID"),
+        "client_secret": config.env("MONZO_CLIENT_SECRET"),
+        "redirect_uri": redirect_uri,
+        "code": code,
+    }, timeout=30)
+    resp.raise_for_status()
+    _save_tokens(resp.json())
+
+
 def main():
     CLIENT_ID = config.env("MONZO_CLIENT_ID")
     CLIENT_SECRET = config.env("MONZO_CLIENT_SECRET")
@@ -70,13 +92,7 @@ def main():
         return 1
 
     state = secrets.token_urlsafe(16)
-    params = {
-        "client_id": CLIENT_ID,
-        "redirect_uri": REDIRECT_URI,
-        "response_type": "code",
-        "state": state,
-    }
-    auth_url = "https://auth.monzo.com/?" + urlencode(params)
+    auth_url = login_url(REDIRECT_URI, state)
 
     print("Opening browser to log in to Monzo...")
     webbrowser.open(auth_url)
@@ -95,17 +111,7 @@ def main():
         print("No code received. Did the login fail?")
         sys.exit(1)
 
-    resp = requests.post("https://api.monzo.com/oauth2/token", data={
-        "grant_type": "authorization_code",
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-        "redirect_uri": REDIRECT_URI,
-        "code": code,
-    })
-    resp.raise_for_status()
-    tokens = resp.json()
-
-    _save_tokens(tokens)
+    exchange_code(code, REDIRECT_URI)
 
     print("Logged in and saved token.")
     print("\nIMPORTANT: check your phone now - Monzo sends a push notification")

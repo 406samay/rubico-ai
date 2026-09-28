@@ -24,9 +24,9 @@ def build_raw_data(allow_browser=True, demo=None):
         try:
             data = src.demo() if demo else src.fetch(allow_browser=allow_browser)
             lines.append(src.format(data))
-            broken += [(part, src.fix_hint) for part in src.broken_parts(data)]
+            broken += [(part, src.fix_command()) for part in src.broken_parts(data)]
         except Exception as e:
-            broken.append((f"{src.title} ({type(e).__name__}: {e})", src.fix_hint))
+            broken.append((f"{src.title} ({type(e).__name__}: {e})", src.fix_command()))
             lines.append(f"--- {src.title} ---\n(unavailable: {e})")
         lines.append("")
 

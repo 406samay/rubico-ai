@@ -80,6 +80,38 @@ class CallbackHandler(BaseHTTPRequestHandler):
         pass
 
 
+def login_url(redirect_uri, state, challenge):
+    return "https://accounts.spotify.com/authorize?" + urlencode({
+        "client_id": config.env("SPOTIFY_CLIENT_ID"),
+        "response_type": "code",
+        "redirect_uri": redirect_uri,
+        "scope": " ".join(SCOPES),
+        "state": state,
+        "code_challenge_method": "S256",
+        "code_challenge": challenge,
+    })
+
+
+def exchange_code(code, redirect_uri, verifier):
+    """Swaps Spotify's one-time code for tokens and saves them."""
+    resp = requests.post(
+        "https://accounts.spotify.com/api/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": redirect_uri,
+            "client_id": config.env("SPOTIFY_CLIENT_ID"),
+            "code_verifier": verifier,
+        },
+        timeout=30,
+    )
+    if not resp.ok:
+        raise RuntimeError(f"Spotify token exchange failed ({resp.status_code}): {resp.text[:300]}")
+    tokens = resp.json()
+    _save_tokens(tokens)
+    return tokens
+
+
 def main():
     CLIENT_ID = config.env("SPOTIFY_CLIENT_ID")
     if not CLIENT_ID:
@@ -89,15 +121,7 @@ def main():
     verifier, challenge = _pkce_pair()
     state = secrets.token_urlsafe(16)
 
-    auth_url = "https://accounts.spotify.com/authorize?" + urlencode({
-        "client_id": CLIENT_ID,
-        "response_type": "code",
-        "redirect_uri": REDIRECT_URI,
-        "scope": " ".join(SCOPES),
-        "state": state,
-        "code_challenge_method": "S256",
-        "code_challenge": challenge,
-    })
+    auth_url = login_url(REDIRECT_URI, state, challenge)
 
     print("Opening browser to authorise Spotify...")
     webbrowser.open(auth_url)
@@ -114,23 +138,11 @@ def main():
         print("State mismatch - aborting for safety.")
         sys.exit(1)
 
-    resp = requests.post(
-        "https://accounts.spotify.com/api/token",
-        data={
-            "grant_type": "authorization_code",
-            "code": _result["code"],
-            "redirect_uri": REDIRECT_URI,
-            "client_id": CLIENT_ID,
-            "code_verifier": verifier,
-        },
-        timeout=30,
-    )
-    if not resp.ok:
-        print(f"Token exchange failed ({resp.status_code}): {resp.text[:400]}")
+    try:
+        tokens = exchange_code(_result["code"], REDIRECT_URI, verifier)
+    except RuntimeError as e:
+        print(e)
         sys.exit(1)
-
-    tokens = resp.json()
-    _save_tokens(tokens)
 
     print("Spotify connected.")
     print(f"Scopes granted: {tokens.get('scope')}")

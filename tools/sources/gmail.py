@@ -79,6 +79,10 @@ class GmailSource(DataSource):
     description = "Your last 24h of email - flags what needs a reply; lets you reply/delete by chat."
     fix_hint = "python tools/reauth_google.py"
 
+    def fix_command(self):
+        cmd = super().fix_command()
+        return cmd.replace("#gmail", "#google")
+
     @property
     def accounts(self):
         return self.settings.get("accounts") or []

@@ -18,13 +18,29 @@ or set reminders. Everything also lands on a private **dashboard** you can look 
 </tr>
 </table>
 
-> **Fully open source and self-hosted.** No Rubico server, no account, no tracking.
-> It runs on your computer with your own keys, and nobody else sees your data,
-> including the people who wrote this code. [Privacy details ↓](#-privacy--safety)
+> **Fully open source and self-hosted.** No Rubico company server, no account, no tracking.
+> It runs on your computer, or on your own private cloud server, with your own keys.
+> Nobody else sees your data, including the people who wrote this code.
+> [Privacy details ↓](#-privacy--safety)
 
 ---
 
-## 🚀 Get started (the easy way)
+## 🚀 Get started: pick where Rubico runs
+
+Rubico needs to be running somewhere to send your morning brief. Choose one:
+
+| | ☁️ **In the cloud** | 💻 **On your computer** |
+|---|---|---|
+| Needs a computer left on? | No | Yes, at brief time |
+| Set up from your phone? | ✅ Yes, all in the browser | Needs a computer |
+| Cost | Hosting ≈ $5/month ([Railway](https://railway.com/pricing)) | Free |
+| Where your data lives | Your own private server | Only your computer |
+| Guide | **[Deploy to Railway →](docs/deploy-railway.md)** | Below ↓ |
+
+Either way you get the same Rubico: the Telegram assistant, the dashboard and every data
+source. Claude usage costs a few cents a day with both.
+
+### 💻 On your computer
 
 1. **Install Python 3.10+** from [python.org/downloads](https://www.python.org/downloads/).
    On Windows, tick **"Add python.exe to PATH"** in the installer.
@@ -169,15 +185,17 @@ nickname, and you choose whether each is used for Gmail, Calendar or both.
 
 ## 🔒 Privacy & safety
 
-- **Nothing is hosted.** Rubico is a set of Python scripts on your computer. There's no
-  Rubico account, server or analytics.
+- **Nothing is hosted by us.** Rubico is a set of Python scripts that run on your computer,
+  or on a cloud server *you* rent in *your* account. There's no Rubico account, company
+  server or analytics.
 - **Where your data goes:** only to Anthropic (Claude reads your data to write the brief.
   Anthropic doesn't train on API data by default), to Telegram (to deliver messages to
   you), and to the services you connect.
 - **Secrets stay local.** `.env`, `config.yaml` and `data/` are all in `.gitignore`.
 - **The bot only talks to you.** Messages from any chat except your own `TELEGRAM_CHAT_ID` are ignored.
-- **The dashboard is private by default.** It only listens on `127.0.0.1`, so only your
-  computer can open it. If you open it up to other devices, set `DASHBOARD_PASSWORD`.
+- **The dashboard is private by default.** On your computer it only listens on `127.0.0.1`,
+  so only that computer can open it. In the cloud it always needs your `DASHBOARD_PASSWORD`,
+  and setup forms only accept requests from your own page.
 - **No surprise actions.** Email sends and deletes are shown to you first and wait
   `review_window_minutes` (default 10) for a `CANCEL`.
 
@@ -204,6 +222,8 @@ Restart `run.py` after changing it.
 ---
 
 ## Keeping it running
+
+Don't want to keep a computer on? [Run it on Railway instead](docs/deploy-railway.md).
 
 `run.py` needs to be running for the morning brief to go out. If the computer was
 off at brief time, Rubico still sends it when it starts, as long as that's within
@@ -252,6 +272,7 @@ fill it in, and register it in `tools/sources/__init__.py`. The full walkthrough
 | Bot doesn't reply | Is `python run.py` running? Run `python setup.py --check` |
 | Monzo transactions missing | Approve access in the Monzo app. Balance still works without it. |
 | Anything else | `python setup.py --check` shows what's missing |
+| Running on Railway? | See the [cloud troubleshooting table](docs/deploy-railway.md#troubleshooting). Logins are fixed from your `/setup` page |
 
 **Upgrading from the older JSON-file version?** Run `python tools/migrate_from_json.py`
 to move your notes, dashboard history, study topics and Monzo/Spotify logins into the
@@ -265,6 +286,7 @@ new database, then `python setup.py` (Google needs one fresh login).
 start.bat / .command / .sh   double-click to start (installs everything first time)
 run.py                 start everything
 setup.py               guided setup (--add for more sources, --check for health)
+Dockerfile, railway.json   how it runs in the cloud (docs/deploy-railway.md)
 demo.py                try it with fake data (chat + dashboard in your browser)
 config.example.yaml    every setting, explained
 .env.example           every secret, with where to get it
@@ -275,6 +297,7 @@ tools/                 the scripts that do the work (see CLAUDE.md)
   sources/               one file per data source
 workflows/             plain-English guides for each job
 dashboard/             the dashboard + the demo chat page (single files, no build step)
+tools/web_setup.py     setup in the browser (/setup), used in the cloud
 data/                  your database and logins (created at runtime, gitignored)
 ```
 

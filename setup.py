@@ -29,7 +29,7 @@ try:
     import google_auth_oauthlib  # noqa: F401
     import googleapiclient  # noqa: F401
     import requests
-    import yaml
+    import yaml  # noqa: F401
     from dotenv import set_key
 except ImportError as e:
     sys.exit(
@@ -42,6 +42,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 import config  # noqa: E402
+import places  # noqa: E402
 
 ENV_FILE = config.ENV_FILE
 PY = config.python_cmd()
@@ -115,14 +116,7 @@ def save_env(key, value):
 def save_config(updates):
     """Merges updates into config.yaml. Only your changes are written there;
     everything else keeps its default (see config.example.yaml)."""
-    data = config._deep_merge(config.load_user_file(), updates)
-    header = (
-        "# Your Rubico settings. Every option is explained in config.example.yaml.\n"
-        "# Edit freely, or re-run `python setup.py` to change things step by step.\n\n"
-    )
-    with open(config.config_path(), "w", encoding="utf-8") as f:
-        f.write(header + yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
-    config.reload()
+    config.save_user_config(updates)
 
 
 def pause():
@@ -332,20 +326,12 @@ def step_basics():
     location, timezone, currency = cfg["location"], cfg["timezone"], cfg["currency"]
     found_city = False
     if city != cfg["location"]["name"] or not config.load_user_file().get("location"):
-        try:
-            found = requests.get(
-                "https://geocoding-api.open-meteo.com/v1/search",
-                params={"name": city, "count": 1}, timeout=15,
-            ).json().get("results") or []
-        except Exception:
-            found = []
-        if found:
-            place = found[0]
-            label = ", ".join(x for x in (place["name"], place.get("admin1"), place.get("country")) if x)
-            ok(f"Found {label} (timezone {place.get('timezone')})")
+        place = places.lookup(city)
+        if place:
+            ok(f"Found {place['label']} (timezone {place['timezone']})")
             location = {"name": place["name"], "latitude": place["latitude"], "longitude": place["longitude"]}
-            timezone = place.get("timezone") or timezone
-            currency = CURRENCIES.get(place.get("country_code", "").upper(), currency)
+            timezone = place["timezone"] or timezone
+            currency = place["currency"] or currency
             found_city = True
         else:
             warn(f"Couldn't look up \"{city}\" automatically.")
@@ -392,7 +378,7 @@ def lan_ip():
 def ask_phone_dashboard():
     """The dashboard is private to this computer by default. Offer to open it
     to your phone on the same Wi-Fi - with a password."""
-    print(f"""
+    print("""
   📊 The dashboard opens on this computer by default (safest). You can also open
      it on your phone when you're on the same Wi-Fi - it'll need a password.""")
     if not yes("Open the dashboard to your phone too?", default=config.get()["dashboard"]["host"] != "127.0.0.1"):
@@ -407,16 +393,6 @@ def ask_phone_dashboard():
     ok(f"On your phone (same Wi-Fi) open http://{ip}:{port}/ - any username, your password.")
     warn("If your computer asks whether to allow network access for Python, click Allow (private networks).")
     return {"dashboard": {"host": "0.0.0.0", "public_url": f"http://{ip}:{port}/"}}
-
-
-# Country -> currency, so setup doesn't have to ask. Anything else: it asks.
-CURRENCIES = {
-    "GB": "GBP", "US": "USD", "CA": "CAD", "AU": "AUD", "NZ": "NZD", "IE": "EUR", "IN": "INR",
-    "DE": "EUR", "FR": "EUR", "ES": "EUR", "IT": "EUR", "NL": "EUR", "BE": "EUR", "PT": "EUR",
-    "AT": "EUR", "FI": "EUR", "GR": "EUR", "SG": "SGD", "HK": "HKD", "JP": "JPY", "ZA": "ZAR",
-    "AE": "AED", "CH": "CHF", "SE": "SEK", "NO": "NOK", "DK": "DKK", "PL": "PLN", "BR": "BRL",
-    "MX": "MXN", "NG": "NGN", "KE": "KES", "PK": "PKR", "PH": "PHP", "MY": "MYR",
-}
 
 
 def step_sources():

@@ -5,6 +5,7 @@ real keys or network access."""
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs
 
 import pytest
 
@@ -20,7 +21,11 @@ class FakeServer:
 
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self):
-                body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
+                raw = self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}"
+                try:
+                    body = json.loads(raw)
+                except ValueError:  # form-encoded, e.g. OAuth token requests
+                    body = {k: v[0] for k, v in parse_qs(raw.decode()).items()}
                 outer.requests.append((self.path, body))
                 payload = json.dumps(respond(self.path, body)).encode()
                 self.send_response(200)

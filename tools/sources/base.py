@@ -52,6 +52,13 @@ class DataSource:
         """Things stopping this source from working. Empty list = ready."""
         return [f"{var} is missing from .env" for var in self.env_vars if not config.env(var)]
 
+    def fix_command(self):
+        """What to tell the user when this source breaks. In the cloud there's
+        no terminal, so point at the browser setup page instead."""
+        if config.is_cloud() and self.fix_hint:
+            return f"open {config.dashboard_url().rstrip('/')}/setup#{self.name}"
+        return self.fix_hint
+
     def broken_parts(self, data):
         """For sources with several accounts: which ones failed, e.g. ["Gmail work"]."""
         return []
