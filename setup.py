@@ -257,30 +257,45 @@ def step_telegram():
         send_test_message(token)
         return
 
+    name = bot["username"]
     print(f"""
-  Now link the bot to YOU (it will only ever talk to this one chat):
-  Open this link on your phone or computer and press START (or send "hi"):""")
-    open_link(f"https://t.me/{bot['username']}")
+  Now link the bot to YOU (it will only ever talk to this one chat).
+  Send your bot any message - pick whichever is easiest:
+
+    📱 Phone:    open the Telegram app, search  @{name}, tap it, press START
+    💻 Computer: https://web.telegram.org/k/#@{name}  (log in, press START)
+    🔗 Link:     https://t.me/{name}
+
+  (The START button on the t.me web page only opens the Telegram app - if
+  nothing happens when you click it, use the phone or web.telegram.org option.)
+""")
+    try:
+        webbrowser.open(f"https://t.me/{name}")
+    except Exception:
+        pass
     try:
         tg("deleteWebhook", token)
     except Exception:
         pass
-    print("  Waiting for your message (up to 3 minutes)...")
-    deadline = time.time() + 180
     offset = None
     chat = None
-    while time.time() < deadline and not chat:
-        params = {"timeout": 20}
-        if offset:
-            params["offset"] = offset
-        for update in tg("getUpdates", token, **params):
-            offset = update["update_id"] + 1
-            msg = update.get("message") or {}
-            if msg.get("chat", {}).get("type") == "private":
-                chat = msg["chat"]
-    if not chat:
-        bad("Didn't see a message. Run `python setup.py --only telegram` to try again.")
-        return
+    while not chat:
+        print("  Waiting for your message (up to 3 minutes)...")
+        deadline = time.time() + 180
+        while time.time() < deadline and not chat:
+            params = {"timeout": 20}
+            if offset:
+                params["offset"] = offset
+            for update in tg("getUpdates", token, **params):
+                offset = update["update_id"] + 1
+                msg = update.get("message") or {}
+                if msg.get("chat", {}).get("type") == "private":
+                    chat = msg["chat"]
+        if not chat:
+            warn(f"Haven't seen a message yet. Make sure you're messaging @{name}.")
+            if not yes("Keep waiting?"):
+                bad("Skipped. Run `python setup.py --only telegram` to try again.")
+                return
     save_env("TELEGRAM_CHAT_ID", str(chat["id"]))
     ok(f"Linked to {chat.get('first_name', 'you')} (chat {chat['id']}). Messages from anyone else are ignored.")
     send_test_message(token)
