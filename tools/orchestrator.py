@@ -5,8 +5,8 @@ Pulls today's data from every switched-on source, hands it to Claude to
 write a short judgment-call summary, adds any reminders that are due,
 sends it to you on Telegram, and saves a copy for the dashboard.
 
-Run it by hand any time:   python tools/orchestrator.py
-run.py also runs it automatically every morning at briefing.time.
+run.py sends it automatically every morning at briefing.time. To get one
+right now, text your bot /brief.
 """
 
 import argparse
@@ -73,7 +73,7 @@ def save_briefing(text, broken, demo=False):
         )
 
 
-def run_briefing(unattended=False, writer=None, send=True):
+def run_briefing(writer=None, send=True):
     """Build, send and store today's brief. Returns the message text.
 
     `writer` lets demo mode swap in a canned brief when there's no API key.
@@ -82,10 +82,10 @@ def run_briefing(unattended=False, writer=None, send=True):
     print(f"=== morning brief {stamp} ===")
 
     try:
-        raw_data, broken = build_raw_data(allow_browser=not unattended)
+        raw_data, broken = build_raw_data()
     except Exception:
         traceback.print_exc()
-        raw_data, broken = "(no data could be loaded)", [("every data source", "python setup.py --check")]
+        raw_data, broken = "(no data could be loaded)", [("every data source", f"open {config.dashboard_url().rstrip('/')}/setup")]
 
     due = reminders.due_for_briefing()
     if writer is None and config.is_demo() and not llm.has_key():
@@ -105,8 +105,7 @@ def run_briefing(unattended=False, writer=None, send=True):
     if due:
         parts.append(reminders_block(due))
     if config.get()["dashboard"].get("enabled"):
-        parts.append(f"📊 Dashboard: {config.dashboard_url()}" + (
-            " (opens on the computer running Rubico)" if config.dashboard_is_local() else ""))
+        parts.append(f"📊 Dashboard: {config.dashboard_url()}")
     if broken:
         # Surface dead sources in the message itself, with the exact fix.
         # An expired login used to fail invisibly; now it shows up every
@@ -132,15 +131,10 @@ def run_briefing(unattended=False, writer=None, send=True):
 
 def main():
     parser = argparse.ArgumentParser(description="Send the morning brief to Telegram now.")
-    parser.add_argument(
-        "--unattended", action="store_true",
-        help="Scheduled run: never open a browser for a Google login - "
-             "report the problem in the brief instead of waiting forever.",
-    )
     parser.add_argument("--no-send", action="store_true", help="Print it, don't send it.")
     args = parser.parse_args()
     try:
-        run_briefing(unattended=args.unattended, send=not args.no_send)
+        run_briefing(send=not args.no_send)
     except Exception:
         traceback.print_exc()
         return 1

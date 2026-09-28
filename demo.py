@@ -156,7 +156,7 @@ def main():
                 time.sleep(1)
         except KeyboardInterrupt:
             pass
-    print("\nDemo finished. When you're ready for the real thing: python setup.py")
+    print("\nDemo finished. To run the real thing, see docs/deploy-railway.md")
     return 0
 
 

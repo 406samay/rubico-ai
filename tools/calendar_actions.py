@@ -16,7 +16,7 @@ def create_event(account_label, summary, start_dt, duration_minutes=15, descript
     if config.is_demo():
         return f"demo-event-{int(start_dt.timestamp())}"
 
-    creds = get_credentials(account_label, allow_browser=False)
+    creds = get_credentials(account_label)
     service = build("calendar", "v3", credentials=creds, cache_discovery=False)
 
     end_dt = start_dt + datetime.timedelta(minutes=duration_minutes)

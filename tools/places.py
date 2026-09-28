@@ -1,7 +1,7 @@
 """
 Turns a city name into what Rubico needs: coordinates (for weather),
 timezone and currency. Uses Open-Meteo's free geocoding - no key needed.
-Shared by setup.py (terminal) and web_setup.py (browser).
+Used by the /setup page (tools/web_setup.py).
 """
 
 import requests

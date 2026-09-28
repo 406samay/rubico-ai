@@ -1,11 +1,12 @@
 """
 One place that knows your personal settings.
 
-Two files feed it:
+Two files feed it, both saved on your storage volume by the /setup page:
   - config.yaml  -> non-secret settings (your name, city, timezone, which
-                    data sources are switched on). Starts as a copy of
-                    config.example.yaml - setup.py writes it for you.
-  - .env         -> secrets (API keys, bot token). Never committed to git.
+                    data sources are switched on). Options are documented
+                    in config.example.yaml.
+  - secrets.env  -> keys pasted into /setup (API keys, bot token). Railway
+                    "Variables" work too and take priority.
 
 Every other tool asks this module instead of hardcoding anything, so the
 same code works for anyone who clones the repo.
@@ -14,7 +15,7 @@ Environment overrides (mostly for demo mode, tests and cloud hosting):
   RUBICO_CONFIG    path to a different config file
   RUBICO_DATA_DIR  where the database and login tokens live
   RUBICO_DEMO=1    run on fake data, never touch real accounts
-  RUBICO_CLOUD=1   running on a server (e.g. Railway) - see "Cloud mode" below
+  RUBICO_CLOUD=0   developer-only: old file layout (config.yaml next to the code)
 """
 
 import copy
@@ -116,9 +117,9 @@ def _deep_merge(base, override):
     return out
 
 
-# ---------------------------------------------------------------- cloud mode
-# On a server (Railway) there's no terminal and the code folder is wiped on
-# every update. So in cloud mode:
+# ---------------------------------------------------------------- server mode
+# Rubico runs on a server (Railway). There's no terminal and the code folder
+# is wiped on every update, so:
 #   - everything you set up is saved on the persistent volume: config.yaml,
 #     secrets.env (keys pasted into the browser setup page) and the database
 #   - the web page listens on the port the host gives us ($PORT), on all
@@ -126,11 +127,13 @@ def _deep_merge(base, override):
 #   - links point at the public web address instead of 127.0.0.1
 
 def is_cloud():
-    flag = os.environ.get("RUBICO_CLOUD", "").strip().lower() in ("1", "true", "yes")
-    return flag or bool(os.environ.get("RAILWAY_ENVIRONMENT_NAME") or os.environ.get("RAILWAY_ENVIRONMENT"))
+    """True unless a developer explicitly sets RUBICO_CLOUD=0."""
+    return os.environ.get("RUBICO_CLOUD", "1").strip().lower() not in ("0", "false", "no")
 
 
 def _cloud_dir():
+    if is_demo() and not os.environ.get("RUBICO_DATA_DIR"):
+        return ROOT / "data" / "demo"  # the demo never touches real data
     return Path(os.environ.get("RUBICO_DATA_DIR") or os.environ.get("RAILWAY_VOLUME_MOUNT_PATH") or ROOT / "data")
 
 
@@ -189,7 +192,7 @@ def is_demo():
 
 
 def load_user_file():
-    """Just what's in config.yaml, without defaults (setup.py edits this)."""
+    """Just what's in config.yaml, without defaults (the /setup page edits this)."""
     path = config_path()
     if not path.exists():
         return {}
@@ -296,14 +299,3 @@ def valid_time(value):
 
 def parse_time(value, default="08:00"):
     return valid_time(value) or valid_time(default) or (8, 0)
-
-
-def dashboard_is_local():
-    """True when only this computer can open the dashboard (the safe default)."""
-    dash = get()["dashboard"]
-    return not dash.get("public_url") and dash.get("host", "127.0.0.1") in ("127.0.0.1", "localhost", "::1")
-
-
-def python_cmd():
-    """How to run Python on this machine, for messages that tell you what to type."""
-    return "python" if os.name == "nt" else "python3"

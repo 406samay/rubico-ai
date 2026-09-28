@@ -145,7 +145,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def _authorised(self):
         """Password check (DASHBOARD_PASSWORD). Any username works.
-        Optional on your own computer; always required in the cloud."""
+        Always required, except for the local demo (fake data only)."""
+        if config.is_demo():
+            return True
         password = config.env("DASHBOARD_PASSWORD")
         if not password:
             if config.is_cloud():
@@ -193,7 +195,7 @@ class Handler(BaseHTTPRequestHandler):
         query = self.path.split("?", 1)[1] if "?" in self.path else ""
 
         if path.startswith("/setup") and config.is_demo():
-            return self._send(404, b"Setup isn't available in the demo. Run: python setup.py")
+            return self._send(404, b"Setup isn't available in the demo. See docs/deploy-railway.md")
         if path == "/setup":
             import web_setup
             return self._send(200, web_setup.render(self._base_url(), query).encode(), "text/html; charset=utf-8")
@@ -292,9 +294,6 @@ def make_server(host=None, port=None):
     dash = config.get()["dashboard"]
     host = host or dash.get("host", "127.0.0.1")
     port = int(port or dash.get("port", 8600))
-    if host not in ("127.0.0.1", "localhost", "::1") and not config.env("DASHBOARD_PASSWORD"):
-        print(f"⚠️  Dashboard is reachable from other devices ({host}) with no password. "
-              "Set DASHBOARD_PASSWORD in .env to lock it.")
     return QuietServer((host, port), Handler)
 
 

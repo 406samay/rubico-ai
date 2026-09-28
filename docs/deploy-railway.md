@@ -13,7 +13,7 @@ Setup happens on a web page instead of in a terminal.
 | 💷 **Cost** | Railway's Hobby plan, currently about **$5/month**, which is plenty for Rubico. Check [railway.com/pricing](https://railway.com/pricing) for today's price. Claude usage is extra, usually a few cents a day. |
 | 🔒 **Privacy** | It's *your* server in *your* Railway account. Your keys, logins and data live on your own storage volume there. Nobody else, including whoever wrote Rubico, can see them. The difference from running on your own computer is that Railway (the hosting company) runs the machine, like any cloud service. |
 | ⏱️ **Time** | About 15 minutes, plus a few more for each extra service (Google etc.). |
-| ⚠️ **One copy per bot** | A Telegram bot can only be used by one running Rubico at a time. If you also ran it on your computer, stop that copy (or make a second bot). |
+| ⚠️ **One copy per bot** | A Telegram bot can only be used by one running Rubico at a time. If you ever run a second copy, give it its own bot. |
 
 **You'll need:** a free [GitHub](https://github.com) account, the Telegram app, and an
 [Anthropic API key](https://console.anthropic.com/settings/keys).
@@ -82,11 +82,11 @@ brief now opens it from your phone too.
 
 ---
 
-## Connecting Google (Gmail & Calendar) in the cloud
+## Connecting Google (Gmail & Calendar)
 
-It's almost the same as the [computer version](../README.md#-connecting-google-gmail--calendar-with-safety-first),
-with **one difference**: in step 5 you create a **Web application** client instead of a
-Desktop app, and tell Google your Rubico's address.
+You create your own free Google "OAuth client", so your login goes straight from Google to
+your Rubico ([why this is safe](../README.md#-connecting-google-gmail--calendar-with-safety-first)).
+It takes about 5 minutes, once:
 
 1. [Create a project](https://console.cloud.google.com/projectcreate) called Rubico.
 2. Enable the [Gmail API](https://console.cloud.google.com/apis/library/gmail.googleapis.com)

@@ -12,13 +12,13 @@ from google_auth import client_config, get_credentials, token_file
 from sources.base import DataSource
 
 
-def gmail_service(label, allow_browser=True):
-    creds = get_credentials(label, allow_browser=allow_browser)
+def gmail_service(label):
+    creds = get_credentials(label)
     return build("gmail", "v1", credentials=creds, cache_discovery=False)
 
 
-def get_recent_emails(label, max_results=10, allow_browser=True):
-    service = gmail_service(label, allow_browser)
+def get_recent_emails(label, max_results=10):
+    service = gmail_service(label)
 
     results = service.users().messages().list(
         userId="me", maxResults=max_results, q="newer_than:1d"
@@ -77,11 +77,7 @@ class GmailSource(DataSource):
     name = "gmail"
     title = "Gmail"
     description = "Your last 24h of email - flags what needs a reply; lets you reply/delete by chat."
-    fix_hint = "python tools/reauth_google.py"
-
-    def fix_command(self):
-        cmd = super().fix_command()
-        return cmd.replace("#gmail", "#google")
+    setup_card = "google"
 
     @property
     def accounts(self):
@@ -95,15 +91,15 @@ class GmailSource(DataSource):
             issues.append("no accounts listed under sources.gmail.accounts")
         for label in self.accounts:
             if not token_file(label).exists():
-                issues.append(f"'{label}' hasn't logged in yet")
+                issues.append(f"'{label}' isn't signed in yet")
         return issues
 
-    def fetch(self, allow_browser=True):
+    def fetch(self):
         max_results = int(self.settings.get("max_emails", 10))
         out = {}
         for label in self.accounts:
             try:
-                out[label] = get_recent_emails(label, max_results, allow_browser)
+                out[label] = get_recent_emails(label, max_results)
             except Exception as e:  # one dead account mustn't hide the others
                 out[label] = e
         return out

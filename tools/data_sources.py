@@ -9,7 +9,7 @@ import config
 import sources
 
 
-def build_raw_data(allow_browser=True, demo=None):
+def build_raw_data(demo=None):
     """Returns (raw_text, broken_sources).
 
     Every source is fetched defensively. One broken source (an expired token,
@@ -22,7 +22,7 @@ def build_raw_data(allow_browser=True, demo=None):
 
     for src in sources.enabled_sources():
         try:
-            data = src.demo() if demo else src.fetch(allow_browser=allow_browser)
+            data = src.demo() if demo else src.fetch()
             lines.append(src.format(data))
             broken += [(part, src.fix_command()) for part in src.broken_parts(data)]
         except Exception as e:

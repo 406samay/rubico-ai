@@ -242,15 +242,15 @@ class SpotifySource(DataSource):
     title = "Spotify"
     description = "What you've been listening to (tracks, minutes, top artists)."
     env_vars = ["SPOTIFY_CLIENT_ID"]
-    fix_hint = "python setup.py --only spotify"
+    setup_card = "spotify"
 
     def problems(self):
         issues = super().problems()
         if not token_file().exists():
-            issues.append("not logged in yet (run: python tools/sources/spotify_auth.py)")
+            issues.append("not connected yet (use the Spotify card on the /setup page)")
         return issues
 
-    def fetch(self, allow_browser=True):
+    def fetch(self):
         """Yesterday + today, so a morning brief still has something to say."""
         by_day = summarise_plays_by_day(get_recently_played())
         yesterday = (metrics_store.today() - datetime.timedelta(days=1)).isoformat()

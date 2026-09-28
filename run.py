@@ -1,15 +1,13 @@
 """
-Start Rubico. One command runs everything:
+Starts Rubico. On Railway this is what the Dockerfile runs; it does it all:
 
-    python run.py
-
+  - the web page: /setup (first-time setup) and the dashboard
   - the Telegram chat (answers your messages, reminders, email actions)
   - the morning brief, sent every day at briefing.time in YOUR timezone
-  - the dashboard web page (http://127.0.0.1:8600 by default)
   - an hourly data refresh for the dashboard charts
 
-Leave it running (on a laptop that stays on, a Raspberry Pi, a home server).
-Press Ctrl+C to stop. First time? Run `python setup.py` before this.
+Until setup is finished only the web page runs; the bot starts by itself
+the moment the Claude key and Telegram chat are filled in on /setup.
 """
 
 import datetime
@@ -33,7 +31,7 @@ def log(msg):
 def briefing_due(now):
     """True once today's briefing time has passed and today's brief hasn't
     gone out - but only within the catch-up window, so a brief never turns
-    up at lunchtime just because the computer was off in the morning.
+    up at lunchtime just because Rubico was restarting in the morning.
 
     Uses your timezone from config.yaml, so clock changes (summer/winter
     time) are handled automatically - no cron DST tricks needed.
@@ -62,7 +60,7 @@ def scheduler_loop(stop):
         try:
             if briefing_due(now):
                 log("Sending the morning brief...")
-                orchestrator.run_briefing(unattended=True)
+                orchestrator.run_briefing()
         except Exception:
             traceback.print_exc()
             # Mark it done anyway: retrying every 30s would spam you.
@@ -90,26 +88,6 @@ def dashboard_thread():
     threading.Thread(target=server.serve_forever, daemon=True, name="dashboard").start()
 
 
-def first_run_menu(missing):
-    """Not set up yet: offer the two sensible next steps instead of an error."""
-    print(f"""
-  👋 Welcome to Rubico! It isn't set up yet (missing: {', '.join(missing)}).
-
-    1) Try the demo - fake data, no accounts, takes 10 seconds
-    2) Set up Rubico - about 3 minutes for the basics
-""")
-    if not sys.stdin.isatty():
-        print("  Run `python demo.py` or `python setup.py`.")
-        return 1
-    choice = input("  Type 1 or 2 and press Enter: ").strip()
-    here = os.path.dirname(os.path.abspath(__file__))
-    script = {"1": "demo.py", "2": "setup.py"}.get(choice)
-    if not script:
-        return 1
-    import subprocess
-    return subprocess.call([sys.executable, os.path.join(here, script)])
-
-
 def announce_bot():
     """Adds the / command menu in Telegram and remembers the bot's username
     so the dashboard's "Open chat" button can link straight to it."""
@@ -133,7 +111,7 @@ def missing_essentials():
 def wait_for_web_setup():
     """Cloud mode: no terminal, so setup happens in the browser. Keep the web
     page up and start the bot as soon as the essentials are filled in."""
-    url = (config.dashboard_url().rstrip("/") + "/setup") if config.public_url() else "your Railway address + /setup"
+    url = (config.dashboard_url().rstrip("/") + "/setup") if config.public_url() else "your Rubico web address + /setup"
     log(f"Waiting for setup - open {url} (log in with your DASHBOARD_PASSWORD)")
     while missing_essentials():
         time.sleep(3)
@@ -142,16 +120,11 @@ def wait_for_web_setup():
 
 
 def main():
-    cloud = config.is_cloud()
-    if missing_essentials() and not cloud:
-        return first_run_menu(missing_essentials())
-
-    if cloud:
-        log(f"Running in cloud mode. Data folder: {config.data_dir()}"
-            + ("" if config.has_persistent_storage() else "  ⚠️ NO VOLUME - data will be lost on update!"))
-        dashboard_thread()  # the setup page lives here, so it always starts first
-        if missing_essentials():
-            wait_for_web_setup()
+    log(f"Data folder: {config.data_dir()}"
+        + ("" if config.has_persistent_storage() else "  ⚠️ NO VOLUME - data will be lost on update!"))
+    dashboard_thread()  # the setup page lives here, so it always starts first
+    if missing_essentials():
+        wait_for_web_setup()
 
     cfg = config.get()
     on = [name for name, s in cfg["sources"].items() if s.get("enabled")]
@@ -160,8 +133,6 @@ def main():
 
     announce_bot()
     stop = threading.Event()
-    if cfg["dashboard"].get("enabled") and not cloud:
-        dashboard_thread()
     threading.Thread(target=scheduler_loop, args=(stop,), daemon=True, name="scheduler").start()
 
     import chat_listener

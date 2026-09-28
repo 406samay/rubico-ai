@@ -24,7 +24,7 @@ def test_bare_cancel_is_for_pending_email_actions(sent):
 
 def test_needs_key_for_open_questions(sent):
     chat_listener.handle_message("what's on today?")
-    assert "ANTHROPIC_API_KEY" in sent[-1]
+    assert "Claude API key" in sent[-1] and "/setup" in sent[-1]
 
 
 def test_claude_json_actions_are_routed(sent, monkeypatch):

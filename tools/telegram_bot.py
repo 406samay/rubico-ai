@@ -1,7 +1,7 @@
 """
 Shared helper for talking to your Telegram bot.
 
-The bot only ever talks to ONE chat: the TELEGRAM_CHAT_ID in .env (yours).
+The bot only ever talks to ONE chat: TELEGRAM_CHAT_ID (yours, linked on /setup).
 Messages from anyone else are ignored by chat_listener.py.
 
 In demo mode nothing is sent - messages are printed to the terminal instead.
@@ -19,7 +19,7 @@ MAX_LEN = 4000  # Telegram's hard limit is 4096 characters per message
 def _token():
     token = config.env("TELEGRAM_BOT_TOKEN")
     if not token:
-        raise RuntimeError("TELEGRAM_BOT_TOKEN is missing from .env - run setup.py.")
+        raise RuntimeError("TELEGRAM_BOT_TOKEN is missing - add it on the /setup page.")
     return token
 
 
@@ -50,7 +50,7 @@ def send_message(text):
         return
     chat_id = config.env("TELEGRAM_CHAT_ID")
     if not chat_id:
-        raise RuntimeError("TELEGRAM_CHAT_ID is missing from .env - run setup.py.")
+        raise RuntimeError("TELEGRAM_CHAT_ID is missing - link your chat on the /setup page.")
     for part in _chunks(text):
         call("sendMessage", http_timeout=20, chat_id=chat_id, text=part)
 

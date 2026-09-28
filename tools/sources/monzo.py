@@ -3,7 +3,7 @@ Monzo (UK bank): balance and recent transactions, refreshing the access
 token automatically when it's close to expiring.
 
 Needs your own Monzo developer client (https://developers.monzo.com) -
-setup.py walks you through it, then runs sources/monzo_auth.py to log in.
+the Monzo card on the /setup page walks you through it.
 """
 
 import datetime
@@ -345,15 +345,15 @@ class MonzoSource(DataSource):
     title = "Monzo"
     description = "Bank balance and yesterday's spending (UK Monzo accounts only)."
     env_vars = ["MONZO_CLIENT_ID", "MONZO_CLIENT_SECRET"]
-    fix_hint = "python setup.py --only monzo"
+    setup_card = "monzo"
 
     def problems(self):
         issues = super().problems()
         if not token_file().exists():
-            issues.append("not logged in yet (run: python tools/sources/monzo_auth.py)")
+            issues.append("not connected yet (use the Monzo card on the /setup page)")
         return issues
 
-    def fetch(self, allow_browser=True):
+    def fetch(self):
         return get_summary(days=1)
 
     def demo(self):

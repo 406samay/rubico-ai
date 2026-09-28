@@ -1543,7 +1543,7 @@ function renderListeningCard(dates) {
         : beforeTracking ? `Spotify wasn't connected yet on ${longDate(date)}.`
         : `Nothing played on ${longDate(date)}.`}</span>
       ${notConnected
-        ? `<span class="caption">Run <code>python setup.py --only spotify</code> to connect it. Tracking starts from that moment — Spotify only exposes the last 50 plays, so earlier history can't be recovered.</span>`
+        ? `<span class="caption">Connect it on the ⚙️ Settings page. Tracking starts from that moment — Spotify only exposes the last 50 plays, so earlier history can't be recovered.</span>`
         : beforeTracking
         ? `<span class="caption">History starts ${longDate(since)} — Spotify only exposes the last 50 plays, so earlier days can't be recovered.</span>`
         : ""}

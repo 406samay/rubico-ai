@@ -127,6 +127,6 @@ def test_dead_google_login_never_hangs(real_mode, monkeypatch):
     cfg = config.get()
     cfg["sources"]["gmail"].update(enabled=True, accounts=["personal"])
     cfg["sources"]["weather"]["enabled"] = False
-    text, broken = data_sources.build_raw_data(allow_browser=False)
+    text, broken = data_sources.build_raw_data()
     assert "unavailable" in text
-    assert broken == [("Gmail personal", "python tools/reauth_google.py")]
+    assert broken == [("Gmail personal", f"open {config.dashboard_url().rstrip('/')}/setup#google")]

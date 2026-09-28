@@ -6,7 +6,7 @@
 2. Register the class in `ALL` in `tools/sources/__init__.py`.
 3. Add `<name>: {enabled: false, ...}` to `config.example.yaml` **and** `DEFAULTS["sources"]` in `tools/config.py`.
 4. Add any secrets to `.env.example` with a comment on where to get them.
-5. If it needs a login, add `step_<name>()` to `setup.py` (beginner-friendly clicks) and store tokens with `config.token_path()`.
-6. Verify: `python demo.py`, `python -m pytest`, `python setup.py --check`, `python tools/orchestrator.py --no-send`.
+5. If it needs a key or login, add a card to `tools/web_setup.py` (copy the Spotify card), set `setup_card` on the source, and store tokens with `config.token_path()`.
+6. Verify: `python demo.py`, `python -m pytest`, then `DASHBOARD_PASSWORD=dev PORT=8080 python run.py` → connect it on `/setup` → text `/brief`.
 
 Full guide with the interface table: `CONTRIBUTING.md`.

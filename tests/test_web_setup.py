@@ -116,8 +116,18 @@ def test_cloud_mode_keeps_everything_on_the_volume(monkeypatch, tmp_path):
     assert config.data_dir() == tmp_path and db.db_path().parent == tmp_path
     assert cfg["dashboard"]["host"] == "0.0.0.0" and cfg["dashboard"]["port"] == 9999
     assert config.dashboard_url() == "https://my-rubico.up.railway.app/"
-    assert not config.dashboard_is_local()
     import sources
     assert sources.get("gmail").fix_command() == "open https://my-rubico.up.railway.app/setup#google"
     config.save_secret("TELEGRAM_CHAT_ID", "42")
     assert "TELEGRAM_CHAT_ID=42" in (tmp_path / "secrets.env").read_text()
+
+
+def test_personality_card_saves_voice(real_mode):
+    csrf = web_setup.csrf_token()
+    loc = web_setup.handle_post(
+        "personality", f"csrf={csrf}&voice=Call+me+boss&email_style=Short&max_words=120".encode(), BASE)
+    assert "Personality+saved" in loc
+    cfg = config.get()
+    assert cfg["assistant"]["voice"] == "Call me boss" and cfg["briefing"]["max_words"] == 120
+    import llm
+    assert "Call me boss" in llm.voice_instructions()

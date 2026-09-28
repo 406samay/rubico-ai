@@ -1,5 +1,1 @@
-# Keep line endings right for each platform, whatever the downloader's git settings
-*.sh      text eol=lf
-*.command text eol=lf
-*.bat     text eol=crlf
-*.png     binary
+*.png binary

@@ -365,7 +365,7 @@ def handle_message(text):
         return handle_cancel_reminder(int(m.group(2)))
     if lower == "/brief":
         import orchestrator
-        return orchestrator.run_briefing(unattended=True)
+        return orchestrator.run_briefing()
     if lower.startswith(SEARCH_PREFIX) and config.feature("web_search"):
         return send_telegram(web_search_answer(stripped[len(SEARCH_PREFIX):].strip()))
     if lower.startswith(STUDIED_PREFIX) and study_reminders.enabled():
@@ -379,13 +379,11 @@ def handle_message(text):
 
     if not llm.has_key():
         return send_telegram(
-            "I need an ANTHROPIC_API_KEY in .env to answer that. Reminders still work "
+            "I need a Claude API key to answer that (add it on the /setup page). Reminders still work "
             "without it - try \"remind me tomorrow to ...\", /reminders or /help."
         )
 
-    # allow_browser=False: a dead Google login must not freeze the chat
-    # waiting on a browser window nobody will see.
-    raw_data, _broken = build_raw_data(allow_browser=False)
+    raw_data, _broken = build_raw_data()
     answer = ask_claude(stripped, raw_data)
     action = try_parse_action(answer)
     kind = action["action"] if action else None

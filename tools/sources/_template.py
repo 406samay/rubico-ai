@@ -17,10 +17,10 @@ class ExampleSource(DataSource):
     name = "example"                # TODO: the key under `sources:` in config.yaml
     title = "Example"               # TODO: human-friendly name
     description = "TODO: one line on what this adds to the brief."
-    env_vars = ["EXAMPLE_API_KEY"]  # TODO: secrets it needs from .env ([] if none)
-    fix_hint = "python setup.py --check"
+    env_vars = ["EXAMPLE_API_KEY"]  # TODO: secret keys it needs ([] if none)
+    setup_card = "example"          # TODO: the /setup card that fixes it ("" if none)
 
-    def fetch(self, allow_browser=True):
+    def fetch(self):
         # TODO: call the real API. Raise an exception if it fails - the core
         # catches it, keeps the rest of the brief, and tells the user.
         resp = requests.get(

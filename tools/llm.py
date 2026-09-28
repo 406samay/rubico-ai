@@ -19,7 +19,7 @@ def _client():
     key = config.env("ANTHROPIC_API_KEY")
     if not key:
         raise RuntimeError(
-            "ANTHROPIC_API_KEY is missing from .env - run setup.py to add it."
+            "ANTHROPIC_API_KEY is missing - add it on the /setup page."
         )
     return anthropic.Anthropic(api_key=key)
 

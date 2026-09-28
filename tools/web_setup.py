@@ -1,8 +1,8 @@
 """
 Setup in the browser: https://<your-rubico-address>/setup
 
-Does everything setup.py does, but as a web page - so Rubico can be set up
-from a phone, e.g. after deploying it to Railway (docs/deploy-railway.md).
+The only setup Rubico has - a web page, so it can be done from a phone after
+deploying to Railway (docs/deploy-railway.md).
 Served by dashboard_server.py behind the dashboard password.
 
 Each card is one step. Forms POST to /setup/<action>; logins with Google,
@@ -10,7 +10,7 @@ Monzo and Spotify bounce through their sites and come back to
 /setup/<service>/callback.
 
 Safety:
-  - keys you paste are saved to secrets.env on your own server/computer and
+  - keys you paste are saved to secrets.env on your own storage volume and
     never shown on the page again
   - every form carries a secret token (CSRF) and must come from this page,
     so another website can't submit it on your behalf
@@ -186,6 +186,22 @@ def act_sources(form, base):
     return _flash(ok="Data sources saved.", anchor="sources")
 
 
+def act_personality(form, base):
+    voice = form.get("voice", "").strip()[:1500]
+    style = form.get("email_style", "").strip()[:1000]
+    try:
+        words = max(50, min(600, int(form.get("max_words") or 200)))
+    except ValueError:
+        return _flash(err="Brief length should be a number, e.g. 200.", anchor="personality")
+    updates = {"briefing": {"max_words": words}, "assistant": {}}
+    if voice:
+        updates["assistant"]["voice"] = voice
+    if style:
+        updates["assistant"]["email_reply_style"] = style
+    config.save_user_config(updates)
+    return _flash(ok="Personality saved - your next message will sound like this.", anchor="personality")
+
+
 def act_google_client(form, base):
     client_id, client_secret = form.get("client_id", "").strip(), form.get("client_secret", "").strip()
     if not client_id.endswith(".apps.googleusercontent.com") or not client_secret:
@@ -272,7 +288,7 @@ def act_spotify_start(form, base):
 
 ACTIONS = {
     "anthropic": act_anthropic, "telegram-token": act_telegram_token, "telegram-link": act_telegram_link,
-    "about": act_about, "sources": act_sources,
+    "about": act_about, "sources": act_sources, "personality": act_personality,
     "google-client": act_google_client, "google-start": act_google_start, "google-remove": act_google_remove,
     "monzo-client": act_monzo_client, "monzo-start": act_monzo_start,
     "spotify-client": act_spotify_client, "spotify-start": act_spotify_start,
@@ -351,8 +367,9 @@ h1 { font-size:1.75rem; margin:0 0 4px; letter-spacing:-.02em; }
 p, ol { margin:10px 0; } ol { padding-left:20px; } li { margin:4px 0; }
 .muted { color:var(--muted); font-size:.92rem; }
 label { display:block; font-size:.9rem; font-weight:600; margin:12px 0 4px; }
-input[type=text], input[type=password], input[type=time] { width:100%; font:inherit; padding:11px 12px;
+input[type=text], input[type=password], input[type=time], input[type=number], textarea { width:100%; font:inherit; padding:11px 12px;
   border-radius:10px; border:1px solid var(--line); background:var(--field); color:var(--text); }
+textarea { min-height:96px; resize:vertical; line-height:1.4; }
 .check { display:flex; gap:10px; align-items:flex-start; font-weight:400; margin:10px 0; }
 .check input { width:20px; height:20px; margin-top:2px; flex:none; }
 button, .btn { display:inline-block; margin-top:14px; font:inherit; font-weight:600; border:0; border-radius:12px;
@@ -480,7 +497,23 @@ def render(base, query=""):
         '<p class="muted">Pick what goes in your brief. All optional - weather needs no login.</p>'
         + _form("sources", "".join(boxes), "Save sources")))
 
-    step = 5
+    # ---- 5. Personality
+    assistant = cfg["assistant"]
+    parts.append(_card("personality", 5, "Personality (optional)", "ok",
+        '<p class="muted">How Rubico sounds. Write it however you like - it\'s passed straight to Claude.</p>'
+        + _form("personality",
+                '<label for="voice">Voice</label>'
+                f'<textarea id="voice" name="voice">{esc(assistant["voice"].strip())}</textarea>'
+                '<p class="muted">e.g. "Dry British humour, very concise, no emoji" or "Call me boss, '
+                'all lowercase, lots of energy".</p>'
+                '<label for="email_style">Email replies you ask it to write</label>'
+                f'<textarea id="email_style" name="email_style">{esc(assistant["email_reply_style"].strip())}</textarea>'
+                '<label for="max_words">Morning brief length (words)</label>'
+                f'<input type="number" id="max_words" name="max_words" min="50" max="600" '
+                f'value="{esc(str(cfg["briefing"]["max_words"]))}">',
+                "Save personality")))
+
+    step = 6
     # ---- Google
     if config.source_enabled("gmail") or config.source_enabled("calendar"):
         parts.append(_google_card(step, base))

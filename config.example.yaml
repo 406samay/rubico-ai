@@ -1,8 +1,9 @@
 # ─────────────────────────────────────────────────────────────────────
-#  Rubico settings (no secrets in here - those go in .env)
+#  Rubico settings (no secrets in here - keys are saved separately)
 #
-#  `python setup.py` creates config.yaml for you from this file and fills
-#  in the basics. Anything you leave out uses the default shown here.
+#  The /setup page saves your choices to config.yaml on your storage
+#  volume - you normally never edit it by hand. This file documents every
+#  option; anything not set uses the default shown here.
 # ─────────────────────────────────────────────────────────────────────
 
 user:
@@ -41,11 +42,11 @@ assistant:
   # Example: all lowercase, short and casual, abbreviations like 'yh', 'ngl'.
   review_window_minutes: 10  # emails wait this long for you to reply CANCEL
 
-# Data sources: switch each on/off. Run `python setup.py` to connect them.
+# Data sources: switch each on/off and connect them on the /setup page.
 sources:
   gmail:
     enabled: false
-    accounts: []           # nicknames, e.g. [personal, work] - setup.py fills this
+    accounts: []           # nicknames, e.g. [personal, work] - filled in by /setup
     max_emails: 10         # per account, from the last 24h
   calendar:
     enabled: false
@@ -68,11 +69,9 @@ features:
 
 dashboard:
   enabled: true
-  host: "127.0.0.1"        # 127.0.0.1 = only this computer can open it (safest).
-                           # Use 0.0.0.0 for your home network, or your Tailscale IP -
-                           # and set DASHBOARD_PASSWORD in .env if you do.
+  host: "127.0.0.1"        # on Railway this is set for you (all addresses, port $PORT)
   port: 8600
-  public_url: ""           # link shown in the brief; blank = http://host:port/
+  public_url: ""           # link shown in the brief; blank = your Railway address
 
 metrics:
   collect_every_minutes: 60  # dashboard refresh. Keep <= 180 if you use Spotify

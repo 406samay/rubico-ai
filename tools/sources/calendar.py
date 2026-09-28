@@ -12,8 +12,8 @@ from google_auth import client_config, get_credentials, token_file
 from sources.base import DataSource
 
 
-def get_todays_events(label, allow_browser=True):
-    creds = get_credentials(label, allow_browser=allow_browser)
+def get_todays_events(label):
+    creds = get_credentials(label)
     service = build("calendar", "v3", credentials=creds, cache_discovery=False)
 
     now = datetime.datetime.now(datetime.timezone.utc)
@@ -50,11 +50,7 @@ class CalendarSource(DataSource):
     name = "calendar"
     title = "Google Calendar"
     description = "Today's events, so the brief knows what your day looks like."
-    fix_hint = "python tools/reauth_google.py"
-
-    def fix_command(self):
-        cmd = super().fix_command()
-        return cmd.replace("#calendar", "#google")
+    setup_card = "google"
 
     @property
     def accounts(self):
@@ -68,14 +64,14 @@ class CalendarSource(DataSource):
             issues.append("no accounts listed under sources.calendar.accounts")
         for label in self.accounts:
             if not token_file(label).exists():
-                issues.append(f"'{label}' hasn't logged in yet")
+                issues.append(f"'{label}' isn't signed in yet")
         return issues
 
-    def fetch(self, allow_browser=True):
+    def fetch(self):
         out = {}
         for label in self.accounts:
             try:
-                out[label] = get_todays_events(label, allow_browser)
+                out[label] = get_todays_events(label)
             except Exception as e:
                 out[label] = e
         return out

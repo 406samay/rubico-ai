@@ -18,66 +18,35 @@ or set reminders. Everything also lands on a private **dashboard** you can look 
 </tr>
 </table>
 
-> **Fully open source and self-hosted.** No Rubico company server, no account, no tracking.
-> It runs on your computer, or on your own private cloud server, with your own keys.
-> Nobody else sees your data, including the people who wrote this code.
-> [Privacy details ↓](#-privacy--safety)
+> **Fully open source, and yours alone.** Rubico runs on your own private server in your
+> own [Railway](https://railway.com) account, with your own keys. There's no Rubico company,
+> account or tracking, and nobody else sees your data, including the people who wrote
+> this code. [Privacy details ↓](#-privacy--safety)
 
 ---
 
-## 🚀 Get started: pick where Rubico runs
+## 🚀 Get started (about 15 minutes, works from your phone)
 
-Rubico needs to be running somewhere to send your morning brief. Choose one:
+Rubico lives on a small cloud server, so your computer never needs to be on, and the
+whole setup happens in your browser. No coding and no terminal.
 
-| | ☁️ **In the cloud** | 💻 **On your computer** |
-|---|---|---|
-| Needs a computer left on? | No | Yes, at brief time |
-| Set up from your phone? | ✅ Yes, all in the browser | Needs a computer |
-| Cost | Hosting ≈ $5/month ([Railway](https://railway.com/pricing)) | Free |
-| Where your data lives | Your own private server | Only your computer |
-| Guide | **[Deploy to Railway →](docs/deploy-railway.md)** | Below ↓ |
+**You'll need:** a free [GitHub](https://github.com) account, the Telegram app, an
+[Anthropic API key](https://console.anthropic.com/settings/keys) (Claude usually costs a few
+cents a day) and a [Railway](https://railway.com) account (about $5/month, see
+[pricing](https://railway.com/pricing)).
 
-Either way you get the same Rubico: the Telegram assistant, the dashboard and every data
-source. Claude usage costs a few cents a day with both.
+1. **Fork** this repo (the **Fork** button at the top of this page).
+2. On **Railway**: New Project → Deploy from GitHub repo → pick your fork.
+3. Add two **Variables**: `DASHBOARD_PASSWORD` (your choice) and `PORT` = `8080`.
+4. Add a **Volume** at `/data`, so your settings survive updates.
+5. **Generate a domain**, then open `https://your-address/setup` and follow the cards:
+   Claude key → Telegram bot → your city → data sources.
 
-### 💻 On your computer
+That's it: text your bot `/help` 🎉
 
-1. **Install Python 3.10+** from [python.org/downloads](https://www.python.org/downloads/).
-   On Windows, tick **"Add python.exe to PATH"** in the installer.
-2. **Download Rubico:** click the green **Code** button above, then **Download ZIP**, and unzip it.
-   (Or `git clone https://github.com/406samay/rubico-ai.git`.)
-3. **Double-click the start file** in the folder:
+**👉 [The full step-by-step guide, with screenshots and troubleshooting](docs/deploy-railway.md)**
 
-   | Windows | Mac | Linux |
-   |---|---|---|
-   | `start.bat` | `start.command` (first time: right-click → Open) | run `./start.sh` in a terminal |
-
-The first time, it installs what it needs (about a minute) and asks what you'd like to do:
-
-- **1) Try the demo.** It uses fake data and needs no accounts. A Telegram-style chat and the
-  dashboard open in your browser, so you can read a sample brief and text the bot
-  ("remind me tomorrow to…", `/reminders`).
-- **2) Set up Rubico.** The **Quick** setup takes about 3 minutes: Claude + Telegram + your city.
-  That already gets you the morning brief, weather, reminders, web search and the dashboard.
-  Connect Gmail, Calendar, your bank or Spotify whenever you like, later.
-
-After that, the same start file simply starts Rubico. Leave it running.
-
-<details>
-<summary>Prefer the terminal?</summary>
-
-```bash
-git clone https://github.com/406samay/rubico-ai.git
-cd rubico-ai
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-python -m pip install -r requirements.txt
-
-python demo.py        # try it with fake data
-python setup.py       # set it up for real
-python run.py         # start it (leave running)
-```
-On Mac/Linux, use `python3` if `python` isn't found.
-</details>
+<img src="docs/web-setup.png" alt="Rubico's setup page on a phone" width="300">
 
 ---
 
@@ -104,25 +73,20 @@ Your bot only ever replies to *you*. Messages from anyone else are ignored.
 
 ## 📊 Dashboard: your history at a glance
 
-Go to <http://127.0.0.1:8600> on the computer running Rubico. Want it on your **phone**
-too? Say yes when setup asks, and the dashboard opens on your home Wi-Fi with a password.
-The link at the bottom of every brief then works from your phone.
+Open your Rubico's web address (or tap the link at the bottom of any brief). It works on
+your phone or any browser, and it's protected by your password:
 
 - **Every morning brief you've received.** Flick the day strip to reread any day.
 - **Your reminders**, and when each one will come back.
 - **Charts** for spending, listening and weather over 7, 30 or 90 days, plus patterns like
   *"you spend £17 more on rainy days"*.
-- An **Open chat** button that jumps straight to your bot in Telegram.
-
-It's private by default, so only your own computer can open it (see [Privacy](#-privacy--safety)).
-Using [Tailscale](https://tailscale.com)? Set `dashboard.host` to your Tailscale IP to open
-it from anywhere.
+- An **Open chat** button that jumps to your bot, and **⚙️ Settings** to change anything.
 
 ---
 
 ## ✨ What it can connect to
 
-Pick any mix. Everything is optional except Claude and Telegram.
+Pick any mix on the setup page. Everything is optional except Claude and Telegram.
 
 | Source | Adds to your brief | Needs |
 |---|---|---|
@@ -132,26 +96,25 @@ Pick any mix. Everything is optional except Claude and Telegram.
 | 🏦 Monzo | Balance and yesterday's spending | A UK Monzo account |
 | 🎧 Spotify | What you've been listening to | A Spotify account |
 
-Add or change sources any time: `python setup.py --add`. Want another one, like Strava,
-Todoist or Outlook? [Add it!](#-adding-a-new-data-source)
+You can also set Rubico's **personality** on the setup page: how it talks, how it writes
+your email replies, and how long the brief is. Want another source, like Strava, Todoist
+or Outlook? [Add it!](#-adding-a-new-data-source)
 
 ---
 
 ## 🔐 Connecting Google (Gmail & Calendar), with safety first
 
-`python setup.py --add` walks you through this step by step, with the right pages opened
-for you. Here's what happens and why it's safe.
+The **Google** card on your setup page walks you through this and shows the exact address
+to copy. Here's what happens and why it's safe.
 
 **You make your own Google "OAuth client".** It's a free key you create in Google
-Cloud Console, and it lets *your* copy of Rubico ask Google for access to *your*
-account. Because you made it yourself:
+Cloud Console, and it lets *your* Rubico ask Google for access to *your* account.
+Because you made it yourself:
 
-- Your login goes **straight from Google to your computer**. There's no Rubico server,
-  company or author in the middle.
-- The login is saved in `data/tokens/google_<nickname>.json` on your computer only
-  (it's gitignored).
+- Your login goes **straight from Google to your own Rubico**. There's no company or author in the middle.
+- The login is saved on your own storage volume, and nowhere else.
 - **You can revoke access any time** at [myaccount.google.com/permissions](https://myaccount.google.com/permissions),
-  or by deleting that file.
+  or with the **Remove** button on the setup page.
 
 **What Rubico asks Google for, and why:**
 
@@ -162,92 +125,31 @@ account. Because you made it yourself:
 | Modify Gmail | Moving emails **you asked to delete** to Trash (recoverable for 30 days). Rubico never permanently deletes anything. |
 | Calendar events | Reading today's events, and adding study review events if you turn that on |
 
-**The steps** (about 5 minutes, once):
+When you sign in, Google shows **"Google hasn't verified this app"**. That's expected,
+because the app is *yours* and you haven't asked Google to review it. Tap
+**Advanced → Go to Rubico → Continue**. The exact steps are in the
+[guide](docs/deploy-railway.md#connecting-google-gmail--calendar).
 
-1. [Create a project](https://console.cloud.google.com/projectcreate) called "Rubico".
-2. Enable the [Gmail API](https://console.cloud.google.com/apis/library/gmail.googleapis.com) and/or the [Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com).
-3. Set up the [consent screen](https://console.cloud.google.com/auth/branding). App name: *Rubico*, audience: *External*.
-4. On [Audience](https://console.cloud.google.com/auth/audience), either add your Gmail address(es) as **test users**, or click **Publish app**. In "Testing" mode Google logs you out every 7 days. Publishing keeps it working and it stays private, because it's your own client.
-5. On [Clients](https://console.cloud.google.com/auth/clients), click *Create client*, choose **Desktop app**, and copy the ID and secret into setup.
-
-When you log in, Google shows **"Google hasn't verified this app"**. That's expected,
-because the app is *yours* and you haven't asked Google to review it. Click
-**Advanced → Go to Rubico (unsafe) → Continue**.
-
-You can connect several Google accounts (e.g. `personal` and `work`). Each one gets a
-nickname, and you choose whether each is used for Gmail, Calendar or both.
-
-> **Running on a server with no screen?** Google's login needs a browser on the same
-> machine. Run `python setup.py --only google` on your laptop, then copy the
-> `data/tokens/` folder to the server.
+You can connect several Google accounts (e.g. `personal` and `work`), each used for
+Gmail, Calendar or both.
 
 ---
 
 ## 🔒 Privacy & safety
 
-- **Nothing is hosted by us.** Rubico is a set of Python scripts that run on your computer,
-  or on a cloud server *you* rent in *your* account. There's no Rubico account, company
-  server or analytics.
+- **Nothing is hosted by us.** Rubico runs on a server *you* rent in *your* own Railway
+  account. There's no Rubico account, company server or analytics. Railway (the hosting
+  company) runs the machine, like any cloud service.
 - **Where your data goes:** only to Anthropic (Claude reads your data to write the brief.
   Anthropic doesn't train on API data by default), to Telegram (to deliver messages to
   you), and to the services you connect.
-- **Secrets stay local.** `.env`, `config.yaml` and `data/` are all in `.gitignore`.
-- **The bot only talks to you.** Messages from any chat except your own `TELEGRAM_CHAT_ID` are ignored.
-- **The dashboard is private by default.** On your computer it only listens on `127.0.0.1`,
-  so only that computer can open it. In the cloud it always needs your `DASHBOARD_PASSWORD`,
-  and setup forms only accept requests from your own page.
+- **Everything is password-protected.** Every page needs your `DASHBOARD_PASSWORD`, and
+  setup forms only accept requests from your own page.
+- **Keys are never shown back.** Keys you paste are saved on your own volume and never
+  appear on the page again.
+- **The bot only talks to you.** Messages from any chat except your own are ignored.
 - **No surprise actions.** Email sends and deletes are shown to you first and wait
-  `review_window_minutes` (default 10) for a `CANCEL`.
-
----
-
-## Configuration
-
-All settings live in `config.yaml`, and every option is explained in
-[`config.example.yaml`](config.example.yaml). Some favourites:
-
-```yaml
-briefing:
-  time: "07:30"
-assistant:
-  voice: >
-    Dry British humour, very concise, no emoji.
-sources:
-  spotify:
-    enabled: false
-```
-
-Restart `run.py` after changing it.
-
----
-
-## Keeping it running
-
-Don't want to keep a computer on? [Run it on Railway instead](docs/deploy-railway.md).
-
-`run.py` needs to be running for the morning brief to go out. If the computer was
-off at brief time, Rubico still sends it when it starts, as long as that's within
-`catch_up_minutes` (default 90). Some ways to keep it running:
-
-- **Linux / Raspberry Pi (systemd):** create `/etc/systemd/system/rubico.service`:
-  ```ini
-  [Unit]
-  Description=Rubico
-  After=network-online.target
-
-  [Service]
-  WorkingDirectory=/home/YOU/rubico-ai
-  ExecStart=/home/YOU/rubico-ai/.venv/bin/python run.py
-  Restart=always
-  User=YOU
-
-  [Install]
-  WantedBy=multi-user.target
-  ```
-  Then run `sudo systemctl enable --now rubico`.
-- **Mac / Windows:** keep the start file's window open. To start it automatically, add
-  `start.command` to *System Settings → General → Login Items* (Mac), or put a shortcut to
-  `start.bat` in your Startup folder (Windows: press Win+R and type `shell:startup`).
+  10 minutes (you can change this) for a `CANCEL`.
 
 ---
 
@@ -256,8 +158,9 @@ off at brief time, Rubico still sends it when it starts, as long as that's withi
 Each source is one small file in [`tools/sources/`](tools/sources/) with the same few
 methods: `fetch()` gets real data, `demo()` returns fake data, and `format()` turns it
 into text for Claude. Copy [`tools/sources/_template.py`](tools/sources/_template.py),
-fill it in, and register it in `tools/sources/__init__.py`. The full walkthrough is in
-[CONTRIBUTING.md](CONTRIBUTING.md). Pull requests for new sources are very welcome!
+fill it in, and register it in `tools/sources/__init__.py`. The full walkthrough, including
+how to try your changes on your own computer, is in [CONTRIBUTING.md](CONTRIBUTING.md).
+Pull requests for new sources are very welcome!
 
 ---
 
@@ -265,43 +168,32 @@ fill it in, and register it in `tools/sources/__init__.py`. The full walkthrough
 
 | Problem | Fix |
 |---|---|
-| Brief says "Couldn't reach Gmail personal" | `python tools/reauth_google.py` |
+| Brief says "Couldn't reach Gmail personal" | Tap the link in the brief (your setup page) and sign in with Google again |
 | "Google hasn't verified this app" | Expected, see [Connecting Google](#-connecting-google-gmail--calendar-with-safety-first) |
-| `Error 403: access_denied` from Google | Add that address as a test user (step 4 above) |
-| Google logs you out every 7 days | Publish your app on the Audience page (step 4 above) |
-| Bot doesn't reply | Is `python run.py` running? Run `python setup.py --check` |
+| Google logs you out every 7 days | Publish your app on Google Cloud's **Audience** page |
+| Bot doesn't reply | Check the deployment is **Active** in Railway, then look at its logs |
 | Monzo transactions missing | Approve access in the Monzo app. Balance still works without it. |
-| Anything else | `python setup.py --check` shows what's missing |
-| Running on Railway? | See the [cloud troubleshooting table](docs/deploy-railway.md#troubleshooting). Logins are fixed from your `/setup` page |
-
-**Upgrading from the older JSON-file version?** Run `python tools/migrate_from_json.py`
-to move your notes, dashboard history, study topics and Monzo/Spotify logins into the
-new database, then `python setup.py` (Google needs one fresh login).
+| Anything else | See the [full troubleshooting table](docs/deploy-railway.md#troubleshooting) |
 
 ---
 
 ## Project layout
 
 ```
-start.bat / .command / .sh   double-click to start (installs everything first time)
-run.py                 start everything
-setup.py               guided setup (--add for more sources, --check for health)
-Dockerfile, railway.json   how it runs in the cloud (docs/deploy-railway.md)
-demo.py                try it with fake data (chat + dashboard in your browser)
-config.example.yaml    every setting, explained
-.env.example           every secret, with where to get it
-tools/                 the scripts that do the work (see CLAUDE.md)
-  orchestrator.py        builds and sends the morning brief
-  chat_listener.py       Telegram chat, actions and commands
-  reminders.py           notes & reminders
-  sources/               one file per data source
-workflows/             plain-English guides for each job
-dashboard/             the dashboard + the demo chat page (single files, no build step)
-tools/web_setup.py     setup in the browser (/setup), used in the cloud
-data/                  your database and logins (created at runtime, gitignored)
+docs/deploy-railway.md   the setup guide
+Dockerfile, railway.json how Railway builds and runs Rubico
+run.py                   starts everything (web page, bot, morning brief)
+tools/                   the scripts that do the work (see CLAUDE.md)
+  web_setup.py             the /setup page
+  orchestrator.py          builds and sends the morning brief
+  chat_listener.py         Telegram chat, actions and commands
+  reminders.py             notes & reminders
+  sources/                 one file per data source
+workflows/               plain-English guides for each job
+dashboard/               the dashboard page (a single file, no build step)
+config.example.yaml      every setting, explained
+demo.py, tests/          for contributors (see CONTRIBUTING.md)
 ```
-
-Tests: `python -m pip install pytest && python -m pytest`
 
 ## License
 

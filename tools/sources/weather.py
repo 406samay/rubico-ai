@@ -98,7 +98,7 @@ class WeatherSource(DataSource):
     title = "Weather"
     description = "Today's forecast for your city (Open-Meteo - free, no key needed)."
 
-    def fetch(self, allow_browser=True):
+    def fetch(self):
         return get_today_weather()
 
     def demo(self):

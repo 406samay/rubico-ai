@@ -3,12 +3,15 @@ Shared Google OAuth login helper, used by anything that talks to Gmail or
 Google Calendar for one of your accounts.
 
 How it stays private:
-  - You create your OWN Google Cloud "OAuth client" (setup.py walks you
-    through it), so the login goes straight from Google to your computer.
+  - You create your OWN Google Cloud "OAuth client" (the /setup page walks
+    you through it), so the login goes straight from Google to your Rubico.
     No third party - including whoever wrote this code - is ever involved.
-  - The saved login lands in data/tokens/google_<nickname>.json on your
-    machine only. It's gitignored. Delete the file (or revoke access at
+  - The saved login lands in tokens/google_<nickname>.json on your own
+    storage volume. Remove the account on /setup (or revoke access at
     https://myaccount.google.com/permissions) and the access is gone.
+
+You sign in on the /setup page ("Sign in with Google"). Everything else
+only ever *uses* a saved login - it never tries to open a login window.
 
 One login per Google account covers everything that account is used for
 (Gmail and/or Calendar), so you only click through Google's screens once.
@@ -26,7 +29,6 @@ import os
 from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 
 import config
 
@@ -64,25 +66,19 @@ def token_file(label):
 
 
 def client_config():
-    """Your Google OAuth client, from .env (preferred) or a downloaded
-    credentials JSON file. Returns None if neither is set up yet."""
+    """Your Google OAuth client (saved from the /setup page), or None."""
     client_id = config.env("GOOGLE_CLIENT_ID")
     client_secret = config.env("GOOGLE_CLIENT_SECRET")
-    if client_id and client_secret:
-        return {
-            "installed": {
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": ["http://localhost"],
-            }
+    if not (client_id and client_secret):
+        return None
+    return {
+        "web": {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
         }
-    for path in (config.data_dir() / "google_credentials.json", config.ROOT / "credentials.json"):
-        if path.exists():
-            with open(path, encoding="utf-8") as f:
-                return json.load(f)
-    return None
+    }
 
 
 def _save_token(creds, path):
@@ -103,27 +99,21 @@ def _granted_scopes(path):
 
 
 def login_needed_message(label):
-    if config.is_cloud():
-        return (f"The Google login for '{label}' needs renewing - sign in again at "
-                f"{config.dashboard_url().rstrip('/')}/setup#google")
-    return (
-        f"The Google login for '{label}' needs renewing. "
-        f"Run: {config.python_cmd()} tools/reauth_google.py"
-    )
+    return (f"The Google login for '{label}' needs renewing - sign in again at "
+            f"{config.dashboard_url().rstrip('/')}/setup#google")
 
 
-def get_credentials(label, allow_browser=True, scopes=None):
-    """Return usable credentials for one account, refreshing or re-logging in.
+def get_credentials(label, scopes=None):
+    """Return usable credentials for one account, refreshing if needed.
 
-    allow_browser=False is for unattended runs (the scheduled daily brief).
-    A dead token there must raise rather than silently hang forever waiting
-    on a browser login that nobody is sitting there to complete.
+    Never opens a login window: if the login is missing or dead, it raises
+    with a message saying where to sign in again, so the morning brief can
+    report it instead of hanging.
     """
     scopes = scopes or scopes_for(label)
     if not scopes:
         raise ValueError(
-            f"'{label}' isn't listed under sources.gmail.accounts or "
-            "sources.calendar.accounts in config.yaml."
+            f"'{label}' isn't set up for Gmail or Calendar - add it on the /setup page."
         )
     path = token_file(label)
 
@@ -143,37 +133,16 @@ def get_credentials(label, allow_browser=True, scopes=None):
         except RefreshError:
             # Google revoked the refresh token (e.g. access was revoked, or
             # it went unused past Google's inactivity window).
-            creds = None
+            pass
 
-    if not allow_browser:
-        raise RefreshError(login_needed_message(label))
-
-    client = client_config()
-    if not client:
-        raise RuntimeError(
-            "No Google OAuth client configured. Add GOOGLE_CLIENT_ID and "
-            "GOOGLE_CLIENT_SECRET to .env - run setup.py for step-by-step help."
-        )
-
-    print(f"\nOpening your browser to log in to Google for '{label}'.")
-    print("Pick the Google account you want to use for this nickname.")
-    print("If Google says it \"hasn't verified this app\": that's expected - it's")
-    print("YOUR OWN app from Google Cloud. Click Advanced -> Go to ... (unsafe) -> Continue.\n")
-    flow = InstalledAppFlow.from_client_config(client, scopes)
-    creds = flow.run_local_server(
-        port=0, prompt="consent", access_type="offline",
-        authorization_prompt_message="If the browser didn't open, visit this link:\n{url}\n",
-        success_message="Rubico is connected to this Google account. You can close this tab.",
-    )
-    _save_token(creds, path)
-    return creds
+    raise RefreshError(login_needed_message(label))
 
 
-def account_email(label, allow_browser=False):
+def account_email(label):
     """Which real Google address a nickname is logged in as (for setup checks)."""
     from googleapiclient.discovery import build
 
-    creds = get_credentials(label, allow_browser=allow_browser)
+    creds = get_credentials(label)
     scopes = scopes_for(label)
     if GMAIL_SCOPES[0] in scopes:
         service = build("gmail", "v1", credentials=creds, cache_discovery=False)
@@ -183,8 +152,7 @@ def account_email(label, allow_browser=False):
 
 
 # ---------------------------------------------------------------- web login
-# Used by the browser setup page (tools/web_setup.py), e.g. on Railway where
-# there's no desktop browser: Google sends you back to
+# Used by the setup page (tools/web_setup.py). Google sends you back to
 #   https://<your-rubico-address>/setup/google/callback
 # which must be listed under "Authorized redirect URIs" on a *Web application*
 # OAuth client in Google Cloud Console.
@@ -193,7 +161,7 @@ def _web_client_config(redirect_uri):
     client = client_config()
     if not client:
         raise RuntimeError("Add your Google OAuth Client ID and secret first.")
-    info = dict(client.get("web") or client.get("installed"))
+    info = dict(client["web"])
     info["redirect_uris"] = [redirect_uri]
     return {"web": info}
 
