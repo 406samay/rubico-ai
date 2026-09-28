@@ -43,7 +43,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 import config  # noqa: E402
 
-ENV_FILE = ROOT / ".env"
+ENV_FILE = config.ENV_FILE
 PY = config.python_cmd()
 
 # ---------------------------------------------------------------- helpers
@@ -213,7 +213,8 @@ def check_anthropic(quiet=False):
 
 
 def tg(method, token, **params):
-    resp = requests.post(f"https://api.telegram.org/bot{token}/{method}", json=params, timeout=40)
+    import telegram_bot
+    resp = requests.post(telegram_bot.API.format(token=token, method=method), json=params, timeout=40)
     data = resp.json()
     if not data.get("ok"):
         raise RuntimeError(data.get("description", "unknown Telegram error"))
@@ -316,9 +317,9 @@ def send_test_message(token):
            text="✅ Rubico is connected! This is where your morning brief will arrive, "
                 "and where you can text me any time. Once Rubico is running, send /help.")
         ok("Sent you a test message on Telegram.")
-        add_command_menu(token)
         if not yes("Did it arrive?"):
             warn("Check you pressed Start on the right bot, then run: python setup.py --only telegram")
+        add_command_menu(token)
     except Exception as e:
         bad(f"Couldn't send a test message: {e}")
 

@@ -11,7 +11,8 @@ import requests
 
 import config
 
-API = "https://api.telegram.org/bot{token}/{method}"
+# TELEGRAM_API_URL is only for tests (pointing at a fake Telegram server).
+API = config.env("TELEGRAM_API_URL", "https://api.telegram.org") + "/bot{token}/{method}"
 MAX_LEN = 4000  # Telegram's hard limit is 4096 characters per message
 
 

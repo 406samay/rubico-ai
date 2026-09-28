@@ -25,7 +25,9 @@ import yaml
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(ROOT / ".env")
+# RUBICO_ENV_FILE lets tests use a throwaway secrets file instead of yours.
+ENV_FILE = Path(os.environ.get("RUBICO_ENV_FILE", ROOT / ".env"))
+load_dotenv(ENV_FILE)
 
 # Every setting has a sensible default here, so a missing or half-filled
 # config.yaml still works. config.example.yaml documents each one.
