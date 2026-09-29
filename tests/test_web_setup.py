@@ -131,3 +131,43 @@ def test_personality_card_saves_voice(real_mode):
     assert cfg["assistant"]["voice"] == "Call me boss" and cfg["briefing"]["max_words"] == 120
     import llm
     assert "Call me boss" in llm.voice_instructions()
+
+
+def test_server_security_headers_and_password_guessing(real_mode, monkeypatch):
+    """Wrong passwords get locked out; pages can't be framed; other sites can't post."""
+    import threading
+    import urllib.error
+    import urllib.request
+    import base64 as b64
+
+    import dashboard_server
+
+    monkeypatch.setenv("DASHBOARD_PASSWORD", "correct-horse-battery")
+    dashboard_server._failures.clear()
+    server = dashboard_server.make_server(host="127.0.0.1", port=0)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+
+    def get(path, password, headers=None, data=None):
+        req = urllib.request.Request(base + path, data=data, headers=headers or {})
+        req.add_header("Authorization", "Basic " + b64.b64encode(f"me:{password}".encode()).decode())
+        try:
+            with urllib.request.urlopen(req) as r:
+                return r.status, dict(r.headers)
+        except urllib.error.HTTPError as e:
+            return e.code, dict(e.headers)
+
+    try:
+        status, headers = get("/setup", "correct-horse-battery")
+        assert status == 200
+        assert headers["X-Frame-Options"] == "DENY" and "frame-ancestors 'none'" in headers["Content-Security-Policy"]
+
+        status, _ = get("/setup/sources", "correct-horse-battery", headers={"Origin": "null"}, data=b"csrf=x")
+        assert status == 403  # sandboxed/foreign form posts are refused
+
+        for _ in range(10):
+            assert get("/setup", "wrong")[0] == 401
+        assert get("/setup", "correct-horse-battery")[0] == 429  # locked out, even with the right one
+    finally:
+        server.shutdown()
+        dashboard_server._failures.clear()

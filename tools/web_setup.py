@@ -435,6 +435,9 @@ def render(base, query=""):
         parts.append('<div class="flash f-err">⚠️ No storage volume is attached, so your settings and logins '
                      'will be wiped every time Rubico updates. In Railway: open your service → '
                      '<b>Add Volume</b> → mount path <code>/data</code>.</div>')
+    if 0 < len(config.env("DASHBOARD_PASSWORD") or "") < 10 and not config.is_demo():
+        parts.append('<div class="flash f-err">🔑 Your DASHBOARD_PASSWORD is short. Rubico is on the '
+                     'internet, so use at least 10 characters - change it in Railway → Variables.</div>')
     if essentials_done():
         chat = f' · <a href="https://t.me/{esc(bot)}">💬 Open chat</a>' if bot else ""
         parts.append(f'<div class="flash f-ok">✅ Rubico is running. Your brief arrives at '
@@ -531,7 +534,9 @@ def render(base, query=""):
                  '<a href="/">📊 Dashboard</a></p>')
     return ("<!doctype html><html lang=en><head><meta charset=utf-8>"
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            f"<title>{esc(config.assistant_name())} setup</title><style>{CSS}</style></head>"
+            f"<title>{esc(config.assistant_name())} setup</title>"
+            '<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%98%80%EF%B8%8F%3C/text%3E%3C/svg%3E">'
+            f"<style>{CSS}</style></head>"
             f'<body><main class="wrap">{"".join(parts)}</main></body></html>')
 
 

@@ -26,10 +26,14 @@ def _token():
 def call(method, token=None, http_timeout=35, **params):
     """params go to Telegram as-is (Telegram has its own `timeout` parameter
     for long polling, so the network timeout here is called http_timeout)."""
-    resp = requests.post(
-        API.format(token=token or _token(), method=method), json=params, timeout=http_timeout
-    )
-    resp.raise_for_status()
+    token = token or _token()
+    try:
+        resp = requests.post(API.format(token=token, method=method), json=params, timeout=http_timeout)
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        # Telegram's address contains the bot token - never let it reach logs
+        # or error messages.
+        raise RuntimeError(f"Telegram {method} failed: {str(e).replace(token, '<bot-token>')}") from None
     return resp.json()["result"]
 
 

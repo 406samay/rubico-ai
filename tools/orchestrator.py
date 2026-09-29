@@ -98,8 +98,7 @@ def run_briefing(writer=None, send=True):
         # Still deliver the reminders - they're the one thing that must not
         # silently disappear because an API call failed.
         traceback.print_exc()
-        brief = (f"Couldn't write your brief this morning (Claude API error: {e}). "
-                 "Your data sources are fine - check your ANTHROPIC_API_KEY and credit.")
+        brief = "⚠️ Couldn't write your brief this morning. " + llm.friendly_error(e)
 
     parts = [brief]
     if due:

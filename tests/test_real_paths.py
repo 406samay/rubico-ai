@@ -130,3 +130,29 @@ def test_dead_google_login_never_hangs(real_mode, monkeypatch):
     text, broken = data_sources.build_raw_data()
     assert "unavailable" in text
     assert broken == [("Gmail personal", f"open {config.dashboard_url().rstrip('/')}/setup#google")]
+
+
+def test_claude_errors_are_explained_in_plain_english(real_mode):
+    import anthropic
+    import httpx2 as httpx  # the HTTP library the Anthropic SDK (1.x) uses
+    import llm
+
+    req = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    bad_key = anthropic.AuthenticationError("invalid x-api-key", response=httpx.Response(401, request=req), body=None)
+    assert "key isn't working" in llm.friendly_error(bad_key) and "/setup#claude" in llm.friendly_error(bad_key)
+    no_credit = anthropic.BadRequestError("Your credit balance is too low to access the Anthropic API",
+                                          response=httpx.Response(400, request=req), body=None)
+    assert "credit has run out" in llm.friendly_error(no_credit)
+
+
+def test_bot_token_never_appears_in_errors(real_mode, monkeypatch):
+    import requests
+    import telegram_bot
+
+    def fail(url, **kw):  # like a real 401 from Telegram: the message includes the URL
+        raise requests.HTTPError(f"401 Client Error: Unauthorized for url: {url}")
+    monkeypatch.setattr(telegram_bot.requests, "post", fail)
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123456:SECRET-TOKEN")
+    with pytest.raises(RuntimeError) as err:
+        telegram_bot.call("getMe")
+    assert "SECRET-TOKEN" not in str(err.value) and "<bot-token>" in str(err.value)

@@ -29,6 +29,7 @@ import json
 import os
 import sys
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -42,6 +43,12 @@ import reminders
 import sources
 
 DASHBOARD_DIR = config.ROOT / "dashboard"
+
+# Wrong-password tracking, so nobody can guess the password by trying
+# thousands of them: 10 wrong tries from one address -> blocked 15 minutes.
+_fail_lock = threading.Lock()
+_failures = {}  # address -> [timestamps of wrong passwords]
+MAX_FAILURES, FAIL_WINDOW = 10, 15 * 60
 
 _collect_lock = threading.Lock()
 _collecting = False
@@ -133,7 +140,12 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Referrer-Policy", "no-referrer")
+        # same-origin: your own forms still say where they came from (the CSRF
+        # check needs that), but no address leaks to other websites.
+        self.send_header("Referrer-Policy", "same-origin")
+        # Never let another website show Rubico inside a hidden frame (clickjacking).
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Content-Security-Policy", "frame-ancestors 'none'")
         for key, value in (extra or {}).items():
             self.send_header(key, value)
         self.end_headers()
@@ -156,16 +168,40 @@ class Handler(BaseHTTPRequestHandler):
                                 "DASHBOARD_PASSWORD with a password of your choice.".encode())
                 return False
             return True
+        who = self._client_address()
+        if self._too_many_failures(who):
+            self._send(429, b"Too many wrong passwords. Wait 15 minutes, then try again.")
+            return False
         header = self.headers.get("Authorization", "")
         if header.startswith("Basic "):
             try:
                 _, _, given = base64.b64decode(header[6:]).decode().partition(":")
             except Exception:
                 given = ""
-            if hmac.compare_digest(given, password):
+            if hmac.compare_digest(given.encode(), password.encode()):
                 return True
+            self._record_failure(who)
         self._send(401, b"password required", extra={"WWW-Authenticate": 'Basic realm="Rubico"'})
         return False
+
+    def _client_address(self):
+        # Behind Railway's proxy the real address is the LAST entry it added to
+        # X-Forwarded-For (earlier entries could be faked by the visitor).
+        forwarded = self.headers.get("X-Forwarded-For", "")
+        return forwarded.split(",")[-1].strip() if forwarded else self.client_address[0]
+
+    @staticmethod
+    def _too_many_failures(who):
+        cutoff = time.time() - FAIL_WINDOW
+        with _fail_lock:
+            recent = [t for t in _failures.get(who, []) if t > cutoff]
+            _failures[who] = recent
+            return len(recent) >= MAX_FAILURES
+
+    @staticmethod
+    def _record_failure(who):
+        with _fail_lock:
+            _failures.setdefault(who, []).append(time.time())
 
     def _base_url(self):
         """This server's address as the browser sees it (for login redirects)."""
@@ -182,8 +218,10 @@ class Handler(BaseHTTPRequestHandler):
         from urllib.parse import urlparse
 
         source = self.headers.get("Origin") or self.headers.get("Referer")
-        if not source or source == "null":
-            return True  # non-browser clients (curl) don't send one
+        if not source:
+            return True  # non-browser clients (curl) don't send one; they still need password + token
+        if source == "null":
+            return False  # sandboxed frames / privacy tricks - never from our own page
         return urlparse(source).netloc == self.headers.get("Host", "")
 
     def do_GET(self):

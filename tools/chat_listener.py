@@ -430,7 +430,7 @@ def poll_once(offset):
             handle_message(message["text"])
         except Exception as e:
             print(f"Error handling message: {type(e).__name__}: {e}")
-            send_telegram(f"Something went wrong handling that ⚠️ ({type(e).__name__}: {e})")
+            send_telegram("⚠️ " + llm.friendly_error(e))
     return offset
 
 

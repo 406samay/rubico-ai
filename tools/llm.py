@@ -56,6 +56,22 @@ def parse_json_object(text):
     return data if isinstance(data, dict) else None
 
 
+def friendly_error(e):
+    """Turns API errors into a plain-English message with the fix."""
+    setup = config.dashboard_url().rstrip("/") + "/setup#claude"
+    text = str(e).lower()
+    if isinstance(e, anthropic.AuthenticationError) or "api key" in text and "invalid" in text:
+        return f"Your Claude API key isn't working any more. Paste a new one at {setup}"
+    if "credit balance" in text:
+        return ("Your Claude credit has run out. Top it up at "
+                "https://console.anthropic.com/settings/billing and I'll carry on.")
+    if isinstance(e, anthropic.RateLimitError):
+        return "Claude is busy right now (rate limit). Try again in a minute."
+    if isinstance(e, (anthropic.APIConnectionError, anthropic.InternalServerError)):
+        return "Couldn't reach Claude just now. Try again in a minute."
+    return f"Something went wrong ({type(e).__name__}: {e})"
+
+
 def voice_instructions():
     """How the assistant should sound - from config.yaml, so it's yours to change."""
     cfg = config.get()
