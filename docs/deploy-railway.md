@@ -1,86 +1,106 @@
 # Run Rubico on Railway
 
-This is the best way to run Rubico. Your computer doesn't need to stay on, and you can do the whole thing from your phone. Rubico runs on a small private server that you rent from [Railway](https://railway.com), and setup happens on a web page instead of in a terminal. If you'd rather use your own computer, see [the README](../README.md#run-it-on-your-own-computer).
+Railway rents you a small private server, so Rubico keeps running and your brief arrives every morning even when your computer is off. It takes about 15 minutes, and you can do it all from your phone. If you'd rather use your own computer, see [the README](../README.md#run-it-on-your-own-computer).
 
-<img src="web-setup.png" alt="Rubico's browser setup page on a phone" width="320">
+<img src="web-setup.png" alt="Rubico's setup page on a phone" width="320">
 
-## Good to know before you start
+## Before you start
 
-It costs about $5 a month on Railway's Hobby plan, which is plenty for Rubico, and you can check [railway.com/pricing](https://railway.com/pricing) for today's price. Claude usage is extra, and it's usually a few cents a day.
+You'll need a free [GitHub](https://github.com) account, the Telegram app and an [Anthropic API key](https://console.anthropic.com/settings/keys) for Claude.
 
-It's your server in your Railway account. Your keys, logins and data live on your own storage volume there, and nobody else can see them, including the people who wrote Rubico. The only difference from your own computer is that Railway runs the machine, like any cloud service.
+Railway gives new accounts a free trial with $5 of credit for 30 days, and no card is needed. After that the Hobby plan costs $5 a month and includes $5 of usage, which is plenty for Rubico. Check [railway.com/pricing](https://railway.com/pricing) for today's prices. Claude is paid separately to Anthropic, and a daily brief usually costs a few cents.
 
-Setup takes about 15 minutes, plus a few more for each extra service like Google. A Telegram bot can only be used by one running Rubico at a time, so if you ever run a second copy, give it its own bot.
+## Step 1. Copy Rubico to your GitHub
 
-You'll need a free [GitHub](https://github.com) account, the Telegram app and an [Anthropic API key](https://console.anthropic.com/settings/keys).
+1. Open [github.com/406samay/rubico-ai](https://github.com/406samay/rubico-ai) and sign in.
+2. Tap **Fork**, then **Create fork**.
 
-## Step 1, copy Rubico into your GitHub
+You now have your own copy, called **rubico-ai**, on your GitHub account.
 
-Open [github.com/406samay/rubico-ai](https://github.com/406samay/rubico-ai) and sign in. Tap Fork, then Create fork, and you'll have your own copy.
+## Step 2. Let Railway see your copy
 
-## Step 2, create your server on Railway
+This is the step people miss. Signing in to Railway with GitHub is not enough on its own, because Railway also needs permission to read your copy of Rubico.
 
-Go to [railway.com](https://railway.com) and tap Login, then Login with GitHub. Tap New Project (or + New), then Deploy from GitHub repo, and pick your rubico-ai fork. If it asks, allow Railway to see that repository. Railway starts building straight away, and the first build takes a couple of minutes.
+1. Go to [railway.com](https://railway.com) and sign in with **GitHub**.
+2. Open [github.com/apps/railway-app/installations/new](https://github.com/apps/railway-app/installations/new).
+3. Pick your GitHub account.
+4. Choose **Only select repositories**, then pick **rubico-ai**.
+5. Tap **Install** (or **Save** if it was installed before).
 
-## Step 3, add a password and a port
+You can check it worked on GitHub under **Settings**, then **Applications**. **Railway App** should be listed under **Installed GitHub Apps**.
 
-Open the rubico-ai service, go to the Variables tab and add two variables. The first is `DASHBOARD_PASSWORD`, which is a password you choose and will use to open your setup page and dashboard, so make it long. The second is `PORT`, which should be set to `8080`.
+## Step 3. Create your Rubico on Railway
 
-Your Rubico is on the internet, so it refuses to open without a password.
+1. On Railway, tap **New Project**, then **GitHub repo**.
+2. Pick **rubico-ai**.
+3. Tap **Add variables**, and add these two.
 
-## Step 4, add storage so nothing is lost when Rubico updates
+| Name | Value |
+|---|---|
+| `DASHBOARD_PASSWORD` | A password you make up, at least 10 characters. You'll use it to open your setup page and dashboard. |
+| `PORT` | `8080` |
 
-In your project, tap + Create (or + New), then Volume. Attach it to the rubico-ai service with the mount path `/data`. Without this, your settings and logins are wiped every time Railway rebuilds, and the setup page shows a red warning if the volume is missing.
+4. Tap **Deploy**.
 
-## Step 5, give it a web address
+The first build takes a couple of minutes.
 
-In the service, open Settings, then Networking, then Generate Domain. If it asks for a port, enter `8080`. You'll get an address like `https://rubico-ai-production-1234.up.railway.app`. Railway redeploys automatically after these changes, so wait until the deployment shows Active in green.
+## Step 4. Add storage
 
-## Step 6, open your setup page
+Storage keeps your settings and logins safe when Rubico updates. Without it they're wiped every time.
 
-Go to your address with `/setup` on the end.
+1. Right click an empty part of your project's page and choose **Volume**. On a phone, or if right click doesn't work, press **Ctrl+K** (or **⌘K** on a Mac) and type **volume**.
+2. Connect it to the **rubico-ai** service.
+3. Set the mount path to `/data`.
 
-```
-https://rubico-ai-production-1234.up.railway.app/setup
-```
+## Step 5. Get your web address
 
-Log in with any username and your `DASHBOARD_PASSWORD`, then go down the cards. The first card is the Claude API key, which you paste in and Rubico checks that it works. The second is the Telegram bot. Make a bot with [@BotFather](https://t.me/BotFather) in the Telegram app by sending `/newbot`, paste the token, then open your bot in Telegram and press Start. Back on the page, tap "I've sent it, link my chat" and you'll get a tick message in Telegram. The third card is About you, which has your name, your city (it sets the weather, timezone and currency) and your brief time. The fourth is Data sources, where you tick what you want, and weather needs no login.
+1. Tap the **rubico-ai** service, then the **Settings** tab.
+2. Under **Networking**, tap **Generate Domain**. If it asks for a port, type `8080`.
 
-As soon as the Claude key and Telegram are done, Rubico starts by itself. Text your bot `/help` and you're up and running. Your dashboard is at your web address without `/setup`, and the link at the bottom of every brief opens it from your phone too.
+You'll get an address like `https://rubico-ai-production-1234.up.railway.app`. Wait until the deployment says **Active** in green.
+
+## Step 6. Set up Rubico in your browser
+
+1. Open your address with `/setup` on the end, like `https://rubico-ai-production-1234.up.railway.app/setup`.
+2. Log in with any username and your `DASHBOARD_PASSWORD`.
+3. Follow the cards from top to bottom. They ask for your Claude key, your Telegram bot, your city and the data sources you want.
+
+For the Telegram card, message [@BotFather](https://t.me/BotFather) in the Telegram app, send `/newbot` and paste the token it gives you. Then open your new bot, press **Start**, and tap the link button on the card.
+
+As soon as the Claude key and Telegram are done, Rubico starts by itself. Text your bot `/help` to check. Your dashboard is your address without `/setup`.
+
+## If something goes wrong
+
+**"Failed to fetch repository files", or rubico-ai isn't in the list.** Railway can't read your copy yet. Do Step 2 again and make sure **rubico-ai** is ticked, then refresh Railway and try again.
+
+**"Rubico needs a password before it can be opened".** Add `DASHBOARD_PASSWORD` under the service's **Variables** tab, as in Step 3.
+
+**A red "No storage volume" warning, or your settings reset after an update.** Add the volume at `/data`, as in Step 4.
+
+**The web address doesn't load.** Check the deployment says **Active**, and that the domain's port is `8080`.
+
+**Telegram says it couldn't check, when you link your chat.** Another copy of Rubico is using the same bot. Stop the other copy, or make a new bot for this one.
+
+**Anything else.** Open the service, then **Deployments**, then **View logs**. Rubico explains what it's doing there in plain English.
 
 ## Connecting Google
 
-You create your own free Google OAuth client, so your login goes straight from Google to your Rubico, and [the README explains why that's safe](../README.md#google). It takes about five minutes and you only do it once.
+You make your own free Google OAuth client, so your login goes straight from Google to your Rubico. [The README explains why that's safe](../README.md#google). It takes about five minutes, once.
 
-First, [create a project](https://console.cloud.google.com/projectcreate) called Rubico. Then enable the [Gmail API](https://console.cloud.google.com/apis/library/gmail.googleapis.com), the [Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com) or both. Next, open the [consent screen](https://console.cloud.google.com/auth/branding), set the app name to Rubico and the audience to External. On the [Audience](https://console.cloud.google.com/auth/audience) page, tap Publish app, because if you only add yourself as a test user, Google logs you out every 7 days.
+1. [Create a project](https://console.cloud.google.com/projectcreate) called Rubico.
+2. Turn on the [Gmail API](https://console.cloud.google.com/apis/library/gmail.googleapis.com), the [Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com) or both.
+3. Open the [consent screen](https://console.cloud.google.com/auth/branding), set the app name to Rubico and the audience to **External**.
+4. On the [Audience](https://console.cloud.google.com/auth/audience) page, tap **Publish app**. If you skip this, Google logs you out every 7 days.
+5. Open [Clients](https://console.cloud.google.com/auth/clients), tap **Create client** and choose **Web application**.
+6. Under **Authorized redirect URIs**, add the address shown on your Google card. It looks like `https://rubico-ai-production-1234.up.railway.app/setup/google/callback`.
+7. Paste the Client ID and secret into the Google card and tap **Sign in with Google**.
 
-Then open [Clients](https://console.cloud.google.com/auth/clients) and tap Create client, and choose the type Web application. Under Authorized redirect URIs, add the address your setup page shows, which looks like this.
+Google will say it "hasn't verified this app". That's expected, because it's your own app. Tap **Advanced**, then **Go to Rubico**, then **Continue**.
 
-```
-https://rubico-ai-production-1234.up.railway.app/setup/google/callback
-```
+If Google says `redirect_uri_mismatch`, the address in step 6 has to match your Google card character for character. If it says `access_denied`, go back to step 4 and publish the app.
 
-Paste the Client ID and secret into the Google card, then tap Sign in with Google. Google will say it "hasn't verified this app", which is expected because it's your own app. Tap Advanced, then Go to Rubico, then Continue.
-
-Monzo and Spotify work the same way. Their cards show the exact redirect address to paste into the Monzo or Spotify developer site.
+Monzo and Spotify work the same way. Their cards show the exact address to paste into the Monzo or Spotify developer site.
 
 ## Updating Rubico
 
-When new features come out, open your fork on GitHub and tap Sync fork, then Update branch. Railway rebuilds automatically, and your settings and logins are kept on the volume.
-
-## Troubleshooting
-
-If you see "Rubico needs a password before it can be opened", add `DASHBOARD_PASSWORD` in Variables, which is Step 3. If you see a red "No storage volume" warning, or your settings reset after an update, add the volume at `/data`, which is Step 4.
-
-If the web address doesn't load, check that the deployment is Active and that the domain's port is `8080`. If Google says `redirect_uri_mismatch`, the redirect address in Google Cloud has to match the one on your setup page character for character. If Google says `access_denied`, publish the app or add your address as a test user, as in the Google steps above.
-
-If linking Telegram says it couldn't check, another copy of Rubico is using the bot, so stop it and try again. For anything else, open the service, go to Deployments, then View logs, because Rubico explains what it's doing there.
-
-
-Then publish the template and copy its link, which looks like `https://railway.com/deploy/xxxx`. Add this line near the top of the README's Railway section, with your link in it.
-
-```markdown
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/xxxx)
-```
-
-People then tap the button, fill in a password and go straight to Step 6.
+When there's a new version, open your copy on GitHub and tap **Sync fork**, then **Update branch**. Railway rebuilds by itself, and your settings stay on the volume.
