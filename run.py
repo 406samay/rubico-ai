@@ -150,9 +150,11 @@ RAILWAY_STEPS = f"""
       {GUIDE_URL}
 
     1. Fork the Rubico repo on GitHub (the Fork button at the top of its page).
-    2. On railway.com choose New Project, then Deploy from GitHub repo, and pick your fork.
-    3. Add two variables, DASHBOARD_PASSWORD (a password you choose) and PORT set to 8080.
-    4. Add a volume at /data, then generate a domain.
+    2. Sign in to railway.com with GitHub, then let Railway read your fork here.
+           https://github.com/apps/railway-app/installations/new
+    3. On Railway choose New Project, then GitHub repo, and pick rubico-ai. Tap Add
+       variables, add DASHBOARD_PASSWORD (a password you make up) and PORT set to 8080.
+    4. Add a volume at /data, then generate a domain under Settings, Networking.
     5. Open your new address with /setup on the end and follow the cards.
 
   The guide should open in your browser. Run this again any time to use your computer instead.

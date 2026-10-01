@@ -29,13 +29,11 @@ Either way, Claude writes the brief, so you'll need an Anthropic API key from [c
 
 ## Run it on Railway
 
-You'll need a free [GitHub](https://github.com) account, the Telegram app, your Anthropic API key and a [Railway](https://railway.com) account, which costs about $5 a month (see their [pricing](https://railway.com/pricing)).
+You'll need a free [GitHub](https://github.com) account, the Telegram app, your Anthropic API key and a [Railway](https://railway.com) account. Railway gives you a free trial with $5 of credit for 30 days, and after that it's about $5 a month (see their [pricing](https://railway.com/pricing)).
 
-Start by forking this repo with the Fork button at the top of this page. Then on Railway choose New Project, then Deploy from GitHub repo, and pick your fork. Add two variables, `DASHBOARD_PASSWORD` set to a password you choose and `PORT` set to `8080`. Add a volume at `/data` so your settings survive updates, and generate a domain. Then open your new address with `/setup` on the end and follow the cards, which ask for your Claude key, your Telegram bot, your city and the data sources you want.
+**[Follow the Railway guide](docs/deploy-railway.md).** It's six short steps, and it covers the one people usually miss, which is letting Railway see your copy of Rubico on GitHub. If you get an error like "Failed to fetch repository files", that's the step to look at.
 
-As soon as the Claude key and Telegram are done, Rubico starts by itself, so text your bot `/help` and you're up and running.
-
-The full guide has screenshots and fixes for the usual problems, and it's in [docs/deploy-railway.md](docs/deploy-railway.md).
+In short, you fork this repo, give Railway permission to read it, create the project with a password, add storage, get a web address, and then finish setup in your browser. As soon as the Claude key and Telegram are done, Rubico starts by itself, so text your bot `/help` and you're up and running.
 
 <img src="docs/web-setup.png" alt="Rubico's setup page on a phone" width="300">
 
