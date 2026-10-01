@@ -9,6 +9,8 @@
 user:
   name: ""                 # what Rubico calls you, e.g. "Alex" (blank = no name)
 
+where: ""                  # set to "laptop" once you choose to run Rubico on this computer
+                           # (blank means Rubico asks the first time you start it)
 timezone: "Europe/London"  # any IANA name: America/New_York, Asia/Kolkata, ...
 locale: "en-GB"            # number/date format on the dashboard
 currency: "GBP"            # GBP, USD, EUR, ...

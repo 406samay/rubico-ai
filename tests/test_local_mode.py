@@ -215,3 +215,93 @@ def test_line_endings_are_pinned_so_start_files_work_on_every_system():
     assert "*.sh text eol=lf" in rules
     assert "*.command text eol=lf" in rules
     assert "*.bat text eol=crlf" in rules
+
+
+# ---------------------------------------------------------------- Railway or this computer
+
+class FakeTerminal:
+    """Stands in for a person sitting at the terminal."""
+    def isatty(self):
+        return True
+
+
+@pytest.fixture
+def at_a_terminal(local_mode, monkeypatch):
+    import run
+
+    monkeypatch.setattr(sys, "stdin", FakeTerminal())
+    opened = []
+    monkeypatch.setattr(run, "open_in_browser", opened.append)
+
+    def answers(*given):
+        queue = iter(given)
+        monkeypatch.setattr("builtins.input", lambda *_: next(queue))
+        return opened
+
+    return run, answers
+
+
+def test_first_start_on_a_computer_asks_railway_or_this_computer(at_a_terminal, capsys):
+    run, answers = at_a_terminal
+    answers("2")
+    assert run.ask_where_it_runs() is True
+    out = capsys.readouterr().out
+    assert "Railway (recommended)" in out and "$5 a month" in out and "On this computer" in out
+
+
+def test_choosing_this_computer_carries_on_and_is_remembered(at_a_terminal):
+    run, answers = at_a_terminal
+    answers("2")
+    assert run.ask_where_it_runs() is True
+    assert config.load_user_file()["where"] == "laptop"
+    answers()  # a second start must not ask again, so any input() call would fail
+    assert run.ask_where_it_runs() is True
+
+
+def test_choosing_railway_opens_the_guide_and_stops(at_a_terminal, capsys):
+    run, answers = at_a_terminal
+    opened = answers("1")
+    assert run.ask_where_it_runs() is False
+    assert opened == [run.GUIDE_URL]
+    assert "deploy-railway.md" in capsys.readouterr().out
+    assert "where" not in config.load_user_file()  # nothing saved, so it asks again next time
+
+
+def test_a_wrong_answer_asks_again(at_a_terminal, capsys):
+    run, answers = at_a_terminal
+    answers("maybe", "", "2")
+    assert run.ask_where_it_runs() is True
+    assert capsys.readouterr().out.count("Please type 1 or 2") == 2
+
+
+def test_it_does_not_ask_when_nobody_is_there_to_answer(local_mode, monkeypatch):
+    import run
+
+    monkeypatch.setattr("builtins.input", lambda *_: pytest.fail("must not ask without a terminal"))
+    assert run.ask_where_it_runs() is True  # pytest's stdin is not a terminal, like the GitHub checks
+
+
+def test_it_does_not_ask_once_setup_is_finished(at_a_terminal, monkeypatch):
+    run, answers = at_a_terminal
+    for key in ("ANTHROPIC_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"):
+        monkeypatch.setenv(key, "x")
+    monkeypatch.setattr("builtins.input", lambda *_: pytest.fail("already set up, must not ask"))
+    assert run.ask_where_it_runs() is True
+
+
+def test_it_never_asks_on_railway(monkeypatch):
+    import run
+
+    monkeypatch.setenv("RUBICO_DEMO", "0")
+    monkeypatch.setenv("RUBICO_CLOUD", "1")
+    config.reload()
+    monkeypatch.setattr(sys, "stdin", FakeTerminal())
+    monkeypatch.setattr("builtins.input", lambda *_: pytest.fail("Railway has no terminal to ask in"))
+    assert run.ask_where_it_runs() is True
+
+
+def test_setup_page_offers_railway_on_a_computer_but_not_on_railway(local_mode, monkeypatch):
+    assert "Run it on Railway" in web_setup.render("http://127.0.0.1:8600")
+    monkeypatch.setenv("RUBICO_CLOUD", "1")
+    config.reload()
+    assert "Run it on Railway" not in web_setup.render("https://my-rubico.up.railway.app")

@@ -433,6 +433,11 @@ def render(base, query=""):
         parts.append(f'<div class="flash f-ok">{esc(params["ok"])}</div>')
     if params.get("err"):
         parts.append(f'<div class="flash f-err">{esc(params["err"])}</div>')
+    if config.is_local():
+        parts.append('<div class="flash f-ok">💻 Rubico is running on this computer, so your brief only goes out '
+                     'while it is on and awake. Want it always on, even when your computer is off? '
+                     '<a href="https://github.com/406samay/rubico-ai/blob/main/docs/deploy-railway.md" '
+                     'target="_blank" rel="noopener">Run it on Railway</a> instead, about $5 a month.</div>')
     if config.is_cloud() and not config.has_persistent_storage():
         parts.append('<div class="flash f-err">⚠️ No storage volume is attached, so your settings and logins '
                      'will be wiped every time Rubico updates. In Railway: open your service → '

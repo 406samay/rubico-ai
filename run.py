@@ -132,6 +132,58 @@ def open_in_browser(url):
         pass  # the address is printed above, so you can open it yourself
 
 
+GUIDE_URL = "https://github.com/406samay/rubico-ai/blob/main/docs/deploy-railway.md"
+
+WHERE_QUESTION = """
+  Where do you want Rubico to run?
+
+    1) On Railway (recommended). A small private server, about $5 a month.
+       Your brief arrives every morning even when your computer is off, and
+       you set it up from your phone in about 15 minutes.
+
+    2) On this computer. It's free and good for trying Rubico out, but the
+       brief only goes out while this computer is on and awake.
+"""
+
+RAILWAY_STEPS = f"""
+  Great choice. Here is the short version, and the full guide with pictures is here.
+      {GUIDE_URL}
+
+    1. Fork the Rubico repo on GitHub (the Fork button at the top of its page).
+    2. On railway.com choose New Project, then Deploy from GitHub repo, and pick your fork.
+    3. Add two variables, DASHBOARD_PASSWORD (a password you choose) and PORT set to 8080.
+    4. Add a volume at /data, then generate a domain.
+    5. Open your new address with /setup on the end and follow the cards.
+
+  The guide should open in your browser. Run this again any time to use your computer instead.
+"""
+
+
+def ask_where_it_runs():
+    """The first time Rubico starts on a computer, ask whether the person would
+    rather use Railway. The answer is remembered, so it only asks once.
+    Returns True to carry on running here, False when they chose Railway."""
+    if not config.is_local() or config.get().get("where") or not missing_essentials():
+        return True
+    if not sys.stdin or not sys.stdin.isatty():
+        return True  # nobody to ask (the GitHub checks run like this)
+    print(WHERE_QUESTION)
+    while True:
+        try:
+            answer = input("  Type 1 or 2 and press Enter: ").strip()
+        except EOFError:
+            return True
+        if answer == "1":
+            print(RAILWAY_STEPS)
+            open_in_browser(GUIDE_URL)
+            return False
+        if answer == "2":
+            config.save_user_config({"where": "laptop"})
+            print("\n  Okay, setting Rubico up on this computer.\n")
+            return True
+        print("  Please type 1 or 2.")
+
+
 def wait_for_web_setup():
     """Cloud mode: no terminal, so setup happens in the browser. Keep the web
     page up and start the bot as soon as the essentials are filled in."""
@@ -175,6 +227,8 @@ def serve():
     else:
         log(f"Data folder: {config.data_dir()}"
             + ("" if config.has_persistent_storage() else "  ⚠️ NO VOLUME - data will be lost on update!"))
+    if not ask_where_it_runs():
+        return 0
     dashboard_thread()  # the setup page lives here, so it always starts first
     if missing_essentials():
         wait_for_web_setup()
