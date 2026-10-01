@@ -67,11 +67,24 @@ class Session:
     def type(self, line):
         os.write(self.master, (line + "\n").encode())
 
+    def drain(self):
+        """Reads whatever is left, so we see what Rubico printed just before it exited."""
+        while select.select([self.master], [], [], 0.5)[0]:
+            try:
+                chunk = os.read(self.master, 4096)
+            except OSError:
+                break
+            if not chunk:
+                break
+            self.output += chunk.decode("utf-8", "replace")
+
     def wait_exit(self, timeout=30):
         try:
-            return self.proc.wait(timeout=timeout)
+            code = self.proc.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            return None
+            code = None
+        self.drain()
+        return code
 
     def stop(self):
         if self.proc.poll() is None:
