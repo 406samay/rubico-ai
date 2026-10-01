@@ -40,11 +40,13 @@ class Session:
             env.pop(key, None)
         env.update(RUBICO_CONFIG=str(config_file), RUBICO_DATA_DIR=str(data_dir),
                    RUBICO_NO_BROWSER="1", PYTHONUNBUFFERED="1")
-        self.master, slave = pty.openpty()
+        self.master, self.slave = pty.openpty()
         self.proc = subprocess.Popen([sys.executable, str(ROOT / "run.py"), "--local"], cwd=ROOT, env=env,
-                                     stdin=slave, stdout=slave, stderr=slave, close_fds=True,
+                                     stdin=self.slave, stdout=self.slave, stderr=self.slave, close_fds=True,
                                      start_new_session=True)
-        os.close(slave)
+        # We keep our own end of the terminal open until the very end. On a Mac, a
+        # terminal whose far end has closed can throw away its last lines of output,
+        # and a real person's terminal window stays open, so this matches real life.
         self.output = ""
 
     def read_until(self, text, timeout=60):
@@ -94,6 +96,7 @@ class Session:
             except subprocess.TimeoutExpired:
                 os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
         os.close(self.master)
+        os.close(self.slave)
 
 
 def dashboard_up(port, timeout=60):
