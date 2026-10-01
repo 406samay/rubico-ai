@@ -1,0 +1,92 @@
+name: Tests
+
+# Runs on every push and pull request, so a change that breaks Rubico is caught
+# before it reaches the page people download from.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Tests on ${{ matrix.os }} with Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Install
+        run: python -m pip install -r requirements.txt pytest
+      - name: Run the tests
+        run: python -m pytest -q
+
+  laptop:
+    name: Laptop start file on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Start it with the start file, check setup opens, stop it
+        run: python tests/smoke_start_file.py
+
+  railway:
+    name: Railway container
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t rubico-ci .
+      - name: Start it the way Railway does
+        run: |
+          docker volume create rubico-ci-data
+          docker run -d --name rubico-ci -p 8080:8080 \
+            -e PORT=8080 \
+            -e DASHBOARD_PASSWORD=ci-test-password-1234 \
+            -e RAILWAY_VOLUME_MOUNT_PATH=/data \
+            -v rubico-ci-data:/data \
+            rubico-ci
+      - name: Check the health page, the password and the setup page
+        run: |
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:8080/healthz && break; sleep 2; done
+          curl -fs http://127.0.0.1:8080/healthz
+          echo
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/)" = "401"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -u me:wrong http://127.0.0.1:8080/setup)" = "401"
+          curl -fs -u me:ci-test-password-1234 http://127.0.0.1:8080/setup | grep -q "Claude API key"
+          docker logs rubico-ci 2>&1 | grep -q "Waiting for setup"
+          if docker logs rubico-ci 2>&1 | grep -q "NO VOLUME"; then echo "the volume was not found"; exit 1; fi
+      - name: Check it stops cleanly when Railway stops it
+        run: |
+          start=$(date +%s)
+          docker stop rubico-ci
+          end=$(date +%s)
+          echo "stopped in $((end - start)) seconds"
+          test $((end - start)) -lt 8
+          test "$(docker inspect rubico-ci --format '{{.State.ExitCode}}')" = "0"
+      - name: Show the container log if something failed
+        if: failure()
+        run: docker logs rubico-ci || true

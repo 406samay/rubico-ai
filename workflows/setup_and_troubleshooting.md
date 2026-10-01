@@ -1,6 +1,6 @@
 # Workflow: Setup and fixing things
 
-**Where setup happens:** only on the `/setup` web page (`tools/web_setup.py`), usually on the user's Railway server. There's no terminal setup.
+**Where setup happens:** only on the `/setup` web page (`tools/web_setup.py`), on the user's Railway server or, with the start files, at `http://127.0.0.1:8600/setup` on their own computer. There's no terminal setup.
 - **Getting it running:** `docs/deploy-railway.md` (fork → Railway → `DASHBOARD_PASSWORD` + `PORT=8080` → volume at `/data` → domain).
 - **Cards, in order:** Claude key → Telegram bot + chat link → about you (city gives timezone and currency) → data sources → personality → Google / Monzo / Spotify (only shown when switched on).
 - **Starting the bot:** `run.py` starts it by itself once the Claude key, bot token and chat link exist. No restart needed.

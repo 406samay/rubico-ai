@@ -15,7 +15,9 @@ Environment overrides (mostly for demo mode, tests and cloud hosting):
   RUBICO_CONFIG    path to a different config file
   RUBICO_DATA_DIR  where the database and login tokens live
   RUBICO_DEMO=1    run on fake data, never touch real accounts
-  RUBICO_CLOUD=0   developer-only: old file layout (config.yaml next to the code)
+  RUBICO_CLOUD=0   run on your own computer (python run.py --local sets this):
+                   config.yaml and .env sit next to the code, and the dashboard
+                   only listens on this computer
 """
 
 import copy
@@ -127,8 +129,21 @@ def _deep_merge(base, override):
 #   - links point at the public web address instead of 127.0.0.1
 
 def is_cloud():
-    """True unless a developer explicitly sets RUBICO_CLOUD=0."""
+    """True on a server (Railway, Docker). False when you run it on your own
+    computer with `python run.py --local`, which sets RUBICO_CLOUD=0."""
     return os.environ.get("RUBICO_CLOUD", "1").strip().lower() not in ("0", "false", "no")
+
+
+def is_local():
+    """Running on your own computer, not on a server."""
+    return not is_cloud() and not is_demo()
+
+
+def local_setup_url():
+    """Where the setup page lives when Rubico runs on your computer. Spotify
+    only accepts the literal 127.0.0.1, so we always use that, not localhost."""
+    dash = get()["dashboard"]
+    return f"http://127.0.0.1:{dash.get('port', 8600)}/setup"
 
 
 def _cloud_dir():
