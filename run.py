@@ -1,5 +1,7 @@
 """
-Starts Rubico. On Railway this is what the Dockerfile runs; it does it all:
+Starts Rubico. On Railway this is what the Dockerfile runs, and on your own
+computer you run it with `python run.py --local` (or double click start.bat,
+start.command or start.sh). Either way it does it all:
 
   - the web page: /setup (first-time setup) and the dashboard
   - the Telegram chat (answers your messages, reminders, email actions)
@@ -8,14 +10,25 @@ Starts Rubico. On Railway this is what the Dockerfile runs; it does it all:
 
 Until setup is finished only the web page runs; the bot starts by itself
 the moment the Claude key and Telegram chat are filled in on /setup.
+
+--local runs it on your own computer: the page only opens on this computer,
+your settings sit next to the code, and the brief only goes out while the
+computer is on. A small server is better for a daily brief, see the README.
 """
 
 import datetime
 import os
+import signal
 import sys
 import threading
 import time
 import traceback
+import webbrowser
+
+# Must happen before config is imported, because config reads it.
+if "--local" in sys.argv:
+    sys.argv.remove("--local")
+    os.environ["RUBICO_CLOUD"] = "0"
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools"))
@@ -108,20 +121,60 @@ def missing_essentials():
     return [k for k in ESSENTIALS if not config.env(k)]
 
 
+def open_in_browser(url):
+    """Opens the setup page for you on your own computer. Set RUBICO_NO_BROWSER=1
+    to turn that off (the tests and the GitHub checks do)."""
+    if config.env("RUBICO_NO_BROWSER"):
+        return
+    try:
+        webbrowser.open(url)
+    except Exception:
+        pass  # the address is printed above, so you can open it yourself
+
+
 def wait_for_web_setup():
     """Cloud mode: no terminal, so setup happens in the browser. Keep the web
     page up and start the bot as soon as the essentials are filled in."""
-    url = (config.dashboard_url().rstrip("/") + "/setup") if config.public_url() else "your Rubico web address + /setup"
-    log(f"Waiting for setup - open {url} (log in with your DASHBOARD_PASSWORD)")
+    if config.is_local():
+        url = config.local_setup_url()
+        log(f"Waiting for setup - opening {url}")
+        open_in_browser(url)
+    else:
+        url = (config.dashboard_url().rstrip("/") + "/setup") if config.public_url() else "your Rubico web address + /setup"
+        log(f"Waiting for setup - open {url} (log in with your DASHBOARD_PASSWORD)")
     while missing_essentials():
         time.sleep(3)
     config.reload()
     log("Setup complete - starting the bot.")
 
 
+def stop_on_sigterm():
+    """A server (Railway, Docker) stops Rubico with SIGTERM, so treat it like Ctrl+C
+    and shut down cleanly instead of being killed after a timeout."""
+    def on_sigterm(*_):
+        raise KeyboardInterrupt
+
+    try:
+        signal.signal(signal.SIGTERM, on_sigterm)
+    except (ValueError, OSError):
+        pass  # not the main thread, or a system without SIGTERM
+
+
 def main():
-    log(f"Data folder: {config.data_dir()}"
-        + ("" if config.has_persistent_storage() else "  ⚠️ NO VOLUME - data will be lost on update!"))
+    try:
+        return serve()
+    except KeyboardInterrupt:
+        log("Stopping. Bye!")
+        return 0
+
+
+def serve():
+    stop_on_sigterm()
+    if config.is_local():
+        log(f"Running on this computer. Data folder: {config.data_dir()}")
+    else:
+        log(f"Data folder: {config.data_dir()}"
+            + ("" if config.has_persistent_storage() else "  ⚠️ NO VOLUME - data will be lost on update!"))
     dashboard_thread()  # the setup page lives here, so it always starts first
     if missing_essentials():
         wait_for_web_setup()
@@ -138,8 +191,6 @@ def main():
     import chat_listener
     try:
         chat_listener.main(stop)
-    except KeyboardInterrupt:
-        log("Stopping. Bye!")
     finally:
         stop.set()
     return 0

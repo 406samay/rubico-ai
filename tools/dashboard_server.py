@@ -224,10 +224,21 @@ class Handler(BaseHTTPRequestHandler):
             return False  # sandboxed frames / privacy tricks - never from our own page
         return urlparse(source).netloc == self.headers.get("Host", "")
 
+    def _host_ok(self):
+        """On your own computer, only answer to the names that mean this
+        computer. Otherwise a website you visit could trick your browser into
+        reading your dashboard (DNS rebinding) by pointing its own name at 127.0.0.1."""
+        if not config.is_local():
+            return True
+        name = self.headers.get("Host", "").rsplit(":", 1)[0].strip("[]").lower()
+        return name in ("127.0.0.1", "localhost", "::1")
+
     def do_GET(self):
         path = self.path.split("?", 1)[0].rstrip("/") or "/"
         if path == "/healthz":
             return self._send(200, b"ok")
+        if not self._host_ok():
+            return self._send(403, b"blocked: open Rubico at http://127.0.0.1 or http://localhost")
         if not self._authorised():
             return
         query = self.path.split("?", 1)[1] if "?" in self.path else ""
@@ -243,7 +254,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._redirect(web_setup.handle_callback(kind, query, self._base_url(), self.path))
         if path in ("/", "/index.html") and not config.is_demo():
             import web_setup
-            if config.is_cloud() and not web_setup.essentials_done():
+            if not web_setup.essentials_done():
                 return self._redirect("/setup")
 
         if path in ("/", "/index.html"):
@@ -277,6 +288,8 @@ class Handler(BaseHTTPRequestHandler):
         self.do_GET()
 
     def do_POST(self):
+        if not self._host_ok():
+            return self._send(403, b"blocked: open Rubico at http://127.0.0.1 or http://localhost")
         if not self._authorised():
             return
         if not self._same_origin():
@@ -331,7 +344,8 @@ class QuietServer(ThreadingHTTPServer):
 def make_server(host=None, port=None):
     dash = config.get()["dashboard"]
     host = host or dash.get("host", "127.0.0.1")
-    port = int(port or dash.get("port", 8600))
+    # port=0 means "any free port" (the tests use it), so test for None, not falsy.
+    port = int(dash.get("port", 8600) if port is None else port)
     return QuietServer((host, port), Handler)
 
 

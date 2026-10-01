@@ -71,11 +71,14 @@ A self-hosted morning brief + Telegram assistant. Map of where things live:
 | Dashboard | `workflows/dashboard.md` | `tools/dashboard_server.py`, `tools/collect_metrics.py`, `dashboard/index.html` |
 | Setup & fixing logins | `workflows/setup_and_troubleshooting.md` | `tools/web_setup.py` (the `/setup` page), `tools/google_auth.py`, `tools/sources/*_auth.py` |
 | Adding a data source | `workflows/add_data_source.md` | `tools/sources/_template.py`, `tools/sources/base.py` |
-| Hosting on Railway (the only way people run it) | `workflows/deploy_railway.md`, `docs/deploy-railway.md` | `Dockerfile`, `railway.json`, `run.py`, `tools/config.py` (server mode) |
+| Hosting on Railway (the recommended way) | `workflows/deploy_railway.md`, `docs/deploy-railway.md` | `Dockerfile`, `railway.json`, `run.py`, `tools/config.py` (server mode) |
+| Running on the user's own computer (the free option) | `workflows/run_on_laptop.md` | `start.bat`, `start.command`, `start.sh`, `run.py --local`, `tests/smoke_start_file.py` |
+| Automatic checks on GitHub | `workflows/run_on_laptop.md` | `.github/workflows/tests.yml` |
 
 Ground rules for this repo:
-- Rubico is Railway-only for users: all setup happens on `/setup`. There's no terminal setup and no desktop login flow.
-- Nothing personal in code. Settings go in `config.yaml` and secrets in `secrets.env`, both on the volume and read via `tools/config.py`. `tests/test_config.py` enforces this.
+- Users run Rubico in one of two ways, Railway (recommended, always on) or their own computer (`python run.py --local`, free, only while it's on). Setup happens on `/setup` in both. There's no terminal setup.
+- Nothing personal in code. Settings go in `config.yaml` and secrets in `secrets.env` (on the Railway volume) or `.env` (next to the code in `--local` mode), read via `tools/config.py`. `tests/test_config.py` enforces this.
 - All storage goes through `tools/db.py` (SQLite `rubico.db` on the volume). Tokens go in `tokens/` on the volume.
 - Anything that changes the outside world (send/delete) goes through `tools/pending_actions.py` so the user gets a cancel window.
 - `python demo.py` and `python -m pytest` must work with no keys at all.
+- The GitHub check (`.github/workflows/tests.yml`) must stay green before anything is merged. It tests Windows, Mac and Linux, the laptop start file, and the Railway container.

@@ -2,7 +2,9 @@
 Setup in the browser: https://<your-rubico-address>/setup
 
 The only setup Rubico has - a web page, so it can be done from a phone after
-deploying to Railway (docs/deploy-railway.md).
+deploying to Railway (docs/deploy-railway.md), or on your own computer at
+http://127.0.0.1:8600/setup when you start Rubico with start.bat, start.command,
+start.sh or `python run.py --local`.
 Served by dashboard_server.py behind the dashboard password.
 
 Each card is one step. Forms POST to /setup/<action>; logins with Google,
@@ -10,8 +12,8 @@ Monzo and Spotify bounce through their sites and come back to
 /setup/<service>/callback.
 
 Safety:
-  - keys you paste are saved to secrets.env on your own storage volume and
-    never shown on the page again
+  - keys you paste are saved on your own storage (secrets.env on the Railway
+    volume, or .env next to the code on your computer) and never shown on the page again
   - every form carries a secret token (CSRF) and must come from this page,
     so another website can't submit it on your behalf
 """
@@ -435,7 +437,7 @@ def render(base, query=""):
         parts.append('<div class="flash f-err">⚠️ No storage volume is attached, so your settings and logins '
                      'will be wiped every time Rubico updates. In Railway: open your service → '
                      '<b>Add Volume</b> → mount path <code>/data</code>.</div>')
-    if 0 < len(config.env("DASHBOARD_PASSWORD") or "") < 10 and not config.is_demo():
+    if config.is_cloud() and 0 < len(config.env("DASHBOARD_PASSWORD") or "") < 10 and not config.is_demo():
         parts.append('<div class="flash f-err">🔑 Your DASHBOARD_PASSWORD is short. Rubico is on the '
                      'internet, so use at least 10 characters - change it in Railway → Variables.</div>')
     if essentials_done():
