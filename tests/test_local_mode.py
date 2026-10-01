@@ -201,7 +201,10 @@ def test_start_files_run_in_local_mode_and_offer_the_demo():
     assert "start.sh" in (ROOT / "start.command").read_text(encoding="utf-8")
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="needs bash")
+# On Windows, "bash" is often a stub that can't read Windows paths. The shell start
+# files are checked on Mac and Linux, and start.bat is run for real on Windows by
+# tests/smoke_start_file.py in the GitHub check.
+@pytest.mark.skipif(shutil.which("bash") is None or os.name == "nt", reason="needs a real bash")
 def test_shell_start_files_are_valid_bash():
     for name in ("start.sh", "start.command"):
         assert subprocess.run(["bash", "-n", str(ROOT / name)]).returncode == 0, name
