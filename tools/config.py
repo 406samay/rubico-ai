@@ -37,6 +37,7 @@ load_dotenv(ENV_FILE)
 # config.yaml still works. config.example.yaml documents each one.
 DEFAULTS = {
     "user": {"name": ""},
+    "where": "",
     "timezone": "Europe/London",
     "locale": "en-GB",
     "currency": "GBP",

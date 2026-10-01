@@ -7,6 +7,7 @@
 **How it works**
 - `run.py --local` sets `RUBICO_CLOUD=0` before `tools/config.py` is imported. `config.is_local()` is true (not cloud, not demo).
 - Local mode keeps `config.yaml`, `.env` and `data/` next to the code (all gitignored). The dashboard listens on `127.0.0.1:8600` only, and needs no password.
+- The first time it starts in a terminal with setup unfinished, `run.py → ask_where_it_runs()` asks 1 for Railway or 2 for this computer. 1 prints the short Railway steps, opens `docs/deploy-railway.md` and exits without saving anything. 2 saves `where: laptop` in `config.yaml` so it never asks again. It stays silent when there's no terminal (the GitHub checks), when setup is finished, and in cloud mode. Delete the `where` line to be asked again.
 - `run.py` opens the setup page in the browser and waits until the Claude key, bot token and chat ID exist, then starts the bot. `RUBICO_NO_BROWSER=1` stops the browser opening (the tests and GitHub checks set it). `RUBICO_NO_PAUSE=1` stops `start.bat` waiting for a key press.
 - The setup page builds its Google, Spotify and Monzo callback addresses from the browser's address, so on a laptop they start with `http://127.0.0.1:8600`. Spotify only accepts `127.0.0.1`, not `localhost`, so `config.local_setup_url()` always uses it.
 
@@ -23,4 +24,5 @@
 **Checks that must pass (GitHub, `.github/workflows/tests.yml`)**
 - `python -m pytest` on Ubuntu, Windows and macOS with Python 3.10, 3.12 and 3.13.
 - `python tests/smoke_start_file.py` on each system. It runs the real start file in a fresh folder, checks the first visit goes to `/setup`, a foreign Host name gets 403, and the port closes when it's stopped. Run it only in a fresh copy, because it creates and removes `config.yaml`.
+- `python tests/smoke_where_it_runs.py` on Mac and Linux. It drives `run.py --local` through a real pseudo terminal and checks the question, the wrong answer, 1 stopping with the guide, 2 carrying on and being remembered, and the next start not asking.
 - The Railway container: build the `Dockerfile`, run it with `PORT`, `DASHBOARD_PASSWORD` and a volume, check `/healthz`, the password and `/setup`, then `docker stop` must exit 0 in under 8 seconds.
