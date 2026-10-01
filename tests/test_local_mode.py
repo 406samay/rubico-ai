@@ -262,8 +262,9 @@ def test_choosing_railway_opens_the_guide_and_stops(at_a_terminal, capsys):
     run, answers = at_a_terminal
     opened = answers("1")
     assert run.ask_where_it_runs() is False
-    assert opened == [run.GUIDE_URL]
-    assert "deploy-railway.md" in capsys.readouterr().out
+    assert opened == [run.DEPLOY_URL]
+    out = capsys.readouterr().out
+    assert "deploy-railway.md" in out and run.DEPLOY_URL in out
     assert "where" not in config.load_user_file()  # nothing saved, so it asks again next time
 
 

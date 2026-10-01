@@ -133,13 +133,14 @@ def open_in_browser(url):
 
 
 GUIDE_URL = "https://github.com/406samay/rubico-ai/blob/main/docs/deploy-railway.md"
+DEPLOY_URL = "https://railway.com/deploy/H_b9fJ?referralCode=te7oSc&utm_medium=integration&utm_source=rubico&utm_campaign=rubico"
 
 WHERE_QUESTION = """
   Where do you want Rubico to run?
 
     1) On Railway (recommended). A small private server, about $5 a month.
        Your brief arrives every morning even when your computer is off, and
-       you set it up from your phone in about 15 minutes.
+       you set it up from your phone in about 10 minutes.
 
     2) On this computer. It's free and good for trying Rubico out, but the
        brief only goes out while this computer is on and awake.
@@ -149,15 +150,16 @@ RAILWAY_STEPS = f"""
   Great choice. Here is the short version, and the full guide with pictures is here.
       {GUIDE_URL}
 
-    1. Fork the Rubico repo on GitHub (the Fork button at the top of its page).
-    2. Sign in to railway.com with GitHub, then let Railway read your fork here.
-           https://github.com/apps/railway-app/installations/new
-    3. On Railway choose New Project, then GitHub repo, and pick rubico-ai. Tap Add
-       variables, add DASHBOARD_PASSWORD (a password you make up) and PORT set to 8080.
-    4. Add a volume at /data, then generate a domain under Settings, Networking.
-    5. Open your new address with /setup on the end and follow the cards.
+    1. Open the Deploy on Railway link.
+           {DEPLOY_URL}
+    2. Sign in to Railway, or make a free account.
+    3. Make up a password for DASHBOARD_PASSWORD, then tap Deploy.
+    4. When it says Active, tap the rubico-ai box, then Settings, and copy your
+       web address from Networking.
+    5. Open that address with /setup on the end and follow the cards.
 
-  The guide should open in your browser. Run this again any time to use your computer instead.
+  The Deploy on Railway page should open in your browser. Run this again any time
+  to use your computer instead.
 """
 
 
@@ -177,7 +179,7 @@ def ask_where_it_runs():
             return True
         if answer == "1":
             print(RAILWAY_STEPS)
-            open_in_browser(GUIDE_URL)
+            open_in_browser(DEPLOY_URL)
             return False
         if answer == "2":
             config.save_user_config({"where": "laptop"})

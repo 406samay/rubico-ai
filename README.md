@@ -29,11 +29,13 @@ Either way, Claude writes the brief, so you'll need an Anthropic API key from [c
 
 ## Run it on Railway
 
-You'll need a free [GitHub](https://github.com) account, the Telegram app, your Anthropic API key and a [Railway](https://railway.com) account. Railway gives you a free trial with $5 of credit for 30 days, and after that it's about $5 a month (see their [pricing](https://railway.com/pricing)).
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/H_b9fJ?referralCode=te7oSc&utm_medium=integration&utm_source=button&utm_campaign=rubico)
 
-**[Follow the Railway guide](docs/deploy-railway.md).** It's six short steps, and it covers the one people usually miss, which is letting Railway see your copy of Rubico on GitHub. If you get an error like "Failed to fetch repository files", that's the step to look at.
+You'll need the Telegram app, your Anthropic API key and a [Railway](https://railway.com) account. Railway gives you a free trial with $5 of credit for 30 days, and after that it's about $5 a month (see their [pricing](https://railway.com/pricing)).
 
-In short, you fork this repo, give Railway permission to read it, create the project with a password, add storage, get a web address, and then finish setup in your browser. As soon as the Claude key and Telegram are done, Rubico starts by itself, so text your bot `/help` and you're up and running.
+Tap the button above, sign in to Railway, make up a password for `DASHBOARD_PASSWORD` and tap Deploy. Storage and a web address are set up for you. When it says Active, open your web address with `/setup` on the end and follow the cards, which ask for your Claude key, your Telegram bot, your city and the data sources you want. As soon as the Claude key and Telegram are done, Rubico starts by itself, so text your bot `/help` and you're up and running.
+
+The [Railway guide](docs/deploy-railway.md) walks through each step, and it also covers running your own copy if you want to change the code.
 
 <img src="docs/web-setup.png" alt="Rubico's setup page on a phone" width="300">
 
