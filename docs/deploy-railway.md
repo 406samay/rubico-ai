@@ -17,20 +17,32 @@ Railway gives new accounts a free trial with $5 of credit for 30 days, and no ca
 1. Tap the **Deploy on Railway** button above.
 2. Sign in to Railway, or make a free account.
 3. Where it asks for `DASHBOARD_PASSWORD`, make up a password of at least 10 characters. You'll use it to open your Rubico, so keep it somewhere safe. Leave `PORT` as `8080`.
-4. Tap **Deploy**, and wait a couple of minutes until it says **Active** in green.
-5. Tap the **rubico-ai** box, then the **Settings** tab, and find your web address under **Networking**. It looks like `https://rubico-ai-production-1234.up.railway.app`.
+4. Tap **Deploy**. It says **Building** for a few minutes, which is normal. Wait until it says **Active** in green.
 
 That's the server done, with storage and a web address already set up for you. Now go to [Set up Rubico in your browser](#set-up-rubico-in-your-browser).
 
 ## Set up Rubico in your browser
 
-1. Open your web address with `/setup` on the end, like `https://rubico-ai-production-1234.up.railway.app/setup`.
-2. Log in with any username and your `DASHBOARD_PASSWORD`.
-3. Follow the cards from top to bottom. They ask for your Claude key, your Telegram bot, your city and the data sources you want.
+### 1. Find your web address
 
-For the Telegram card, message [@BotFather](https://t.me/BotFather) in the Telegram app, send `/newbot` and paste the token it gives you. Then open your new bot, press **Start**, and tap the link button on the card.
+In Railway, tap the **rubico-ai** box, then the **Settings** tab. Under **Networking** there's an address like `https://rubico-ai-production-1234.up.railway.app`. Copy it.
 
-As soon as the Claude key and Telegram are done, Rubico starts by itself. Text your bot `/help` to check. Your dashboard is your address without `/setup`.
+### 2. Open the setup page
+
+Paste the address into your browser and add `/setup` on the end, like `https://rubico-ai-production-1234.up.railway.app/setup`. When it asks you to log in, type any username and your `DASHBOARD_PASSWORD`.
+
+### 3. Fill in the cards from top to bottom
+
+1. **Claude API key.** Paste your key from [console.anthropic.com](https://console.anthropic.com/settings/keys) and save it.
+2. **Telegram bot.** In Telegram, message [@BotFather](https://t.me/BotFather) and send `/newbot`. Pick a name, then a username ending in "bot", and paste the token it gives you. Then open your new bot in Telegram, press **Start**, go back to the page and tap the link button.
+3. **About you.** Your city and the time you want your brief.
+4. **Data sources.** Pick what you want. Weather needs no login, so it's a good one to start with, and you can add the rest later.
+
+Use a new bot for each Rubico. A bot can only be used by one Rubico at a time, so if you already run one, make another bot for this one.
+
+### 4. Check it works
+
+In Telegram, text your bot `/help`, then `/brief`. If it replies to both, you're all set, and your morning brief will arrive at the time you chose. Your dashboard is your web address without `/setup`.
 
 ## Your own copy instead
 
