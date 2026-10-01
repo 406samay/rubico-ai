@@ -76,9 +76,6 @@ If the web address doesn't load, check that the deployment is Active and that th
 
 If linking Telegram says it couldn't check, another copy of Rubico is using the bot, so stop it and try again. For anything else, open the service, go to Deployments, then View logs, because Rubico explains what it's doing there.
 
-## For the repo owner, a one tap Deploy on Railway button
-
-A Railway template turns Steps 1 to 5 into a single button, and you only create it once. In Railway, open Templates from your workspace menu and tap New Template. Add a service from the GitHub repo `406samay/rubico-ai`. In the template editor, add the variable `DASHBOARD_PASSWORD` as required, with the description "Choose a password for your Rubico pages", and add `PORT` set to `8080`. You can also add `ANTHROPIC_API_KEY` and `TELEGRAM_BOT_TOKEN` as required variables, so people paste them while deploying. Set a volume with the mount path `/data`, and enable a public domain on port `8080`.
 
 Then publish the template and copy its link, which looks like `https://railway.com/deploy/xxxx`. Add this line near the top of the README's Railway section, with your link in it.
 
